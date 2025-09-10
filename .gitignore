@@ -1,3 +1,4 @@
-# ignore
-./CelebDataProcessed/*
-./ExtractedFaces/*
+# ignore folders
+
+CelebDataProcessed/
+ExtractedFaces/

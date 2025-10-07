@@ -1,0 +1,107 @@
+{% extends 'checkin/base.html' %}
+{% block title %}Manage Users • Face Check-In{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Create Employee</h3>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_id">Employee ID</label>
+            {{ form.employee_id }}
+            {% if form.employee_id.errors %}
+              <small class="text-danger">{{ form.employee_id.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_name">Full Name</label>
+            {{ form.employee_name }}
+            {% if form.employee_name.errors %}
+              <small class="text-danger">{{ form.employee_name.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_birth">Birth Date</label>
+            {{ form.employee_birth }}
+            {% if form.employee_birth.errors %}
+              <small class="text-danger">{{ form.employee_birth.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_gender">Gender</label>
+            {{ form.employee_gender }}
+            {% if form.employee_gender.errors %}
+              <small class="text-danger">{{ form.employee_gender.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3 form-check">
+            {{ form.is_admin }}
+            <label class="form-check-label" for="id_is_admin">Administrator</label>
+            {% if form.is_admin.errors %}
+              <small class="text-danger">{{ form.is_admin.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_password">Password</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+              <small class="text-danger">{{ form.password.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Employees</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Birth</th>
+              <th>Gender</th>
+              <th>Admin</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for employee in employees %}
+              <tr>
+                <td>{{ employee.employee_id }}</td>
+                <td>{{ employee.employee_name }}</td>
+                <td>{{ employee.employee_birth|date:'Y-m-d' }}</td>
+                <td class="text-capitalize">{{ employee.employee_gender }}</td>
+                <td>
+                  {% if employee.is_admin %}
+                    <span class="badge bg-success">Yes</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-link" href="{% url 'checkin:employee_edit' employee.pk %}"><i class="ti ti-edit"></i> Edit</a>
+                  <a class="btn btn-sm btn-link text-danger" href="{% url 'checkin:employee_delete' employee.pk %}"><i class="ti ti-trash"></i> Delete</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted">No employees yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

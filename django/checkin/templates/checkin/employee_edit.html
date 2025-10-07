@@ -1,0 +1,66 @@
+{% extends 'checkin/base.html' %}
+{% block title %}Edit {{ employee.employee_name }} • Face Check-In{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">Edit Employee</h3>
+        <a href="{% url 'checkin:employee_list' %}" class="btn btn-link">Back</a>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_id">Employee ID</label>
+            {{ form.employee_id }}
+            {% if form.employee_id.errors %}
+              <small class="text-danger">{{ form.employee_id.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_name">Full Name</label>
+            {{ form.employee_name }}
+            {% if form.employee_name.errors %}
+              <small class="text-danger">{{ form.employee_name.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_birth">Birth Date</label>
+            {{ form.employee_birth }}
+            {% if form.employee_birth.errors %}
+              <small class="text-danger">{{ form.employee_birth.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_employee_gender">Gender</label>
+            {{ form.employee_gender }}
+            {% if form.employee_gender.errors %}
+              <small class="text-danger">{{ form.employee_gender.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3 form-check">
+            {{ form.is_admin }}
+            <label class="form-check-label" for="id_is_admin">Administrator</label>
+            {% if form.is_admin.errors %}
+              <small class="text-danger">{{ form.is_admin.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_password">Password</label>
+            {{ form.password }}
+            <small class="form-hint">Leave blank to keep the current password.</small>
+            {% if form.password.errors %}
+              <small class="text-danger">{{ form.password.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <div class="d-flex justify-content-between">
+            <a href="{% url 'checkin:employee_delete' employee.pk %}" class="btn btn-outline-danger">Delete</a>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

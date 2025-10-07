@@ -1,0 +1,86 @@
+{% extends 'checkin/base.html' %}
+{% block title %}History • Face Check-In{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Add Check-In/Out Record</h3>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="id_employee">Employee</label>
+            {{ form.employee }}
+            {% if form.employee.errors %}
+              <small class="text-danger">{{ form.employee.errors.0 }}</small>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Add Record</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Latest History</h3>
+      </div>
+      <div class="card-body border-bottom py-2">
+        <form class="row g-2" method="get">
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="employee" placeholder="Search by Employee ID" value="{{ request.GET.employee }}">
+          </div>
+          <div class="col-md-4">
+            <select name="check_type" class="form-select">
+              <option value="">All Types</option>
+              <option value="in" {% if request.GET.check_type == 'in' %}selected{% endif %}>Check In</option>
+              <option value="out" {% if request.GET.check_type == 'out' %}selected{% endif %}>Check Out</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
+          </div>
+        </form>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Type</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in history_items %}
+              <tr>
+                <td>
+                  <div class="fw-bold">{{ item.employee.employee_name }}</div>
+                  <small class="text-muted">{{ item.employee.employee_id }}</small>
+                </td>
+                <td>
+                  {% if item.check_type == 'in' %}
+                    <span class="badge bg-success">Check In</span>
+                  {% else %}
+                    <span class="badge bg-warning">Check Out</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.created_at|date:'Y-m-d H:i' }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-center text-muted">No records yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-muted">
+        Showing latest {{ history_items|length }} of {{ history_total_count }} records.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

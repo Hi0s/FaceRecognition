@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Face Check-In{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler-vendors.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'checkin/app.css' %}">
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body>
+    <div class="page">
+      <header class="navbar navbar-expand-md navbar-light d-print-none">
+        <div class="container-xl">
+          <h1 class="navbar-brand navbar-brand-autodark">
+            <span class="navbar-brand-text">Face Check-In</span>
+          </h1>
+          {% if request.session.employee_name %}
+          <div class="navbar-nav flex-row order-md-last">
+            <span class="nav-link">Signed in as {{ request.session.employee_name }}</span>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'checkin:logout' %}">Logout</a>
+          </div>
+          {% endif %}
+        </div>
+      </header>
+      <div class="page-wrapper">
+        {% if request.session.employee_id %}
+          <div class="page-body pt-3 pb-0">
+            <div class="container-xl">
+              <div class="btn-list">
+                <a href="{% url 'checkin:employee_list' %}" class="btn {% if active_nav == 'employees' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                  <i class="ti ti-users"></i> Manage Users
+                </a>
+                <a href="{% url 'checkin:history' %}" class="btn {% if active_nav == 'history' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                  <i class="ti ti-clock"></i> History
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        {% if messages %}
+          <div class="page-body">
+            <div class="container-xl">
+              {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'primary' }}" role="alert">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        <div class="page-body">
+          <div class="container-xl">
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

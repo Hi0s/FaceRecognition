@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Pose Capture</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at top, #eff1ff, #c6d0f7);
+            color: #1a1a1a;
+        }
+
+        .app {
+            width: min(460px, 92vw);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 24px 48px rgba(37, 56, 88, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+            text-align: center;
+            color: #283b73;
+        }
+
+        .preview {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        video,
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            transform-origin: center;
+        }
+
+        #overlay {
+            pointer-events: none;
+        }
+
+        .status {
+            min-height: 48px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 12px 16px;
+            background: #ebf1ff;
+            color: #1d3a8a;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .status strong {
+            display: block;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.7;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls label {
+            font-size: 13px;
+            color: #3a3f55;
+        }
+
+        .size-input {
+            width: 70px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(40, 59, 115, 0.3);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        button {
+            cursor: pointer;
+            min-width: 140px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 16px 32px rgba(59, 130, 246, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 40px rgba(37, 99, 235, 0.28);
+        }
+
+        .steps {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(40, 59, 115, 0.18);
+            background: rgba(235, 241, 255, 0.7);
+            color: #3a4d86;
+        }
+
+        .step.active {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.12);
+            color: #1d3a8a;
+            font-weight: 600;
+        }
+
+        .step.done {
+            background: rgba(22, 163, 74, 0.16);
+            border-color: rgba(22, 163, 74, 0.5);
+            color: #166534;
+        }
+
+        .captures {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+        }
+
+        .capture-card {
+            background: #f6f7ff;
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: inset 0 0 0 1px rgba(40, 59, 115, 0.05);
+        }
+
+        .capture-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid rgba(40, 59, 115, 0.2);
+        }
+
+        .capture-card span {
+            display: block;
+            margin-top: 6px;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #4d609c;
+        }
+
+        .note {
+            font-size: 12px;
+            color: rgba(58, 63, 85, 0.8);
+            text-align: center;
+        }
+
+        @media (max-width: 560px) {
+            .app {
+                padding: 22px 20px;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <h1>Face Pose Capture</h1>
+
+        <div class="preview">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+        </div>
+
+        <div class="status" id="status">
+            <strong>Status</strong>
+            Waiting for camera permission...
+        </div>
+
+        <ul class="steps" id="steps"></ul>
+
+        <div class="controls">
+            <label>
+                Image size
+                <input class="size-input" id="widthInput" type="number" value="224" min="96" max="512">
+                ×
+                <input class="size-input" id="heightInput" type="number" value="224" min="96" max="512">
+            </label>
+            <button id="startButton">Start capture</button>
+        </div>
+
+        <p class="note">Stay close to the camera so only your face fills the frame.</p>
+
+        <div class="captures" id="captures"></div>
+    </div>
+
+    <script>
+        const STEPS = [
+            { key: 'center', label: 'Center' },
+            { key: 'left', label: 'Look Left' },
+            { key: 'right', label: 'Look Right' }
+        ];
+
+        const STABLE_FRAMES_REQUIRED = 18;
+        const MIN_FACE_WIDTH_RATIO = 0.15; // Wider means closer to the camera
+
+        const refs = {
+            video: document.getElementById('video'),
+            overlay: document.getElementById('overlay'),
+            status: document.getElementById('status'),
+            steps: document.getElementById('steps'),
+            captures: document.getElementById('captures'),
+            startButton: document.getElementById('startButton'),
+            widthInput: document.getElementById('widthInput'),
+            heightInput: document.getElementById('heightInput')
+        };
+
+        let overlayCtx = refs.overlay.getContext('2d');
+        let faceMesh = null;
+        let scanning = false;
+        let currentStepIndex = 0;
+        let stableCounter = 0;
+        const capturedImages = new Map();
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function updateStatus(message, label = 'Status') {
+            refs.status.innerHTML = `<strong>${label}</strong>${message}`;
+        }
+
+        function renderStepIndicators() {
+            refs.steps.innerHTML = '';
+            STEPS.forEach((step, index) => {
+                const li = document.createElement('li');
+                li.className = 'step';
+                li.dataset.step = step.key;
+
+                if (index < currentStepIndex) {
+                    li.classList.add('done');
+                } else if (index === currentStepIndex && scanning) {
+                    li.classList.add('active');
+                }
+
+                li.textContent = step.label;
+                refs.steps.appendChild(li);
+            });
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' },
+                    audio: false
+                });
+
+                refs.video.srcObject = stream;
+
+                await new Promise(resolve => {
+                    refs.video.onloadedmetadata = () => {
+                        refs.video.play();
+                        refs.overlay.width = refs.video.videoWidth;
+                        refs.overlay.height = refs.video.videoHeight;
+                        overlayCtx = refs.overlay.getContext('2d');
+                        resolve();
+                    };
+                });
+
+                updateStatus('Camera ready. Press start to capture poses.');
+            } catch (error) {
+                console.error('Camera error', error);
+                updateStatus('Unable to access camera. Please allow permission and reload.', 'Error');
+            }
+        }
+
+        async function initFaceMesh() {
+            faceMesh = new FaceMesh({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.8,
+                minTrackingConfidence: 0.8
+            });
+
+            faceMesh.onResults(onResults);
+        }
+
+        function startScanning() {
+            if (!faceMesh) {
+                updateStatus('Model still loading, please wait a moment.', 'Info');
+                return;
+            }
+
+            capturedImages.clear();
+            renderCaptures();
+            currentStepIndex = 0;
+            stableCounter = 0;
+            scanning = true;
+            refs.startButton.disabled = true;
+            renderStepIndicators();
+            updateStatus('Look straight at the camera until the capture flashes.', 'Step 1');
+        }
+
+        function completeScanning() {
+            scanning = false;
+            refs.startButton.disabled = false;
+            renderStepIndicators();
+            updateStatus('All poses captured. Review the images below or start again.', 'Done');
+        }
+
+        function analyseDistance(landmarks) {
+            const leftEye = landmarks[33];
+            const rightEye = landmarks[263];
+            const faceWidth = Math.abs(rightEye.x - leftEye.x);
+            return faceWidth;
+        }
+
+        function isPoseSatisfied(landmarks, pose) {
+            const nose = landmarks[1];
+            const leftCheek = landmarks[116];
+            const rightCheek = landmarks[345];
+            const leftDistance = Math.abs(nose.x - leftCheek.x);
+            const rightDistance = Math.abs(nose.x - rightCheek.x);
+            const ratio = leftDistance / Math.max(rightDistance, 1e-5);
+
+            if (pose === 'center') {
+                return ratio > 0.85 && ratio < 1.15;
+            }
+
+            if (pose === 'left') {
+                return ratio > 1.25;
+            }
+
+            if (pose === 'right') {
+                return ratio < 0.75;
+            }
+
+            return false;
+        }
+
+        function computeFaceBox(landmarks) {
+            let minX = 1;
+            let minY = 1;
+            let maxX = 0;
+            let maxY = 0;
+
+            for (const point of landmarks) {
+                minX = Math.min(minX, point.x);
+                maxX = Math.max(maxX, point.x);
+                minY = Math.min(minY, point.y);
+                maxY = Math.max(maxY, point.y);
+            }
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            const size = Math.max(maxX - minX, maxY - minY) + 0.08;
+            const boxSize = Math.min(1, size);
+
+            const x = clamp(centerX - boxSize / 2, 0, 1 - boxSize);
+            const y = clamp(centerY - boxSize / 2, 0, 1 - boxSize);
+
+            return { x, y, width: boxSize, height: boxSize };
+        }
+
+        function drawOverlay(landmarks, faceWidth) {
+            overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
+            if (!landmarks) {
+                return;
+            }
+
+            const box = computeFaceBox(landmarks);
+            const scaleX = refs.overlay.width;
+            const scaleY = refs.overlay.height;
+            const isNear = typeof faceWidth === 'number' && faceWidth >= MIN_FACE_WIDTH_RATIO;
+            overlayCtx.strokeStyle = isNear ? '#22c55e' : '#ef4444';
+            overlayCtx.lineWidth = 3;
+            overlayCtx.strokeRect(
+                box.x * scaleX,
+                box.y * scaleY,
+                box.width * scaleX,
+                box.height * scaleY
+            );
+        }
+
+        function capturePose(landmarks, pose) {
+            const targetWidth = Number(refs.widthInput.value) || 224;
+            const targetHeight = Number(refs.heightInput.value) || 224;
+            const box = computeFaceBox(landmarks);
+
+            const captureCanvas = document.createElement('canvas');
+            captureCanvas.width = targetWidth;
+            captureCanvas.height = targetHeight;
+            const captureCtx = captureCanvas.getContext('2d');
+
+            const sourceX = box.x * refs.video.videoWidth;
+            const sourceY = box.y * refs.video.videoHeight;
+            const sourceWidth = box.width * refs.video.videoWidth;
+            const sourceHeight = box.height * refs.video.videoHeight;
+
+            captureCtx.save();
+            captureCtx.translate(targetWidth, 0);
+            captureCtx.scale(-1, 1);
+            captureCtx.drawImage(
+                refs.video,
+                sourceX,
+                sourceY,
+                sourceWidth,
+                sourceHeight,
+                0,
+                0,
+                targetWidth,
+                targetHeight
+            );
+            captureCtx.restore();
+
+            const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.92);
+            capturedImages.set(pose, dataUrl);
+            renderCaptures();
+        }
+
+        function renderCaptures() {
+            refs.captures.innerHTML = '';
+            STEPS.forEach(step => {
+                if (!capturedImages.has(step.key)) {
+                    return;
+                }
+                const card = document.createElement('div');
+                card.className = 'capture-card';
+
+                const img = document.createElement('img');
+                img.src = capturedImages.get(step.key);
+                img.alt = step.label;
+
+                const label = document.createElement('span');
+                label.textContent = step.label;
+
+                const download = document.createElement('a');
+                download.href = capturedImages.get(step.key);
+                download.download = `${step.key}.jpg`;
+                download.textContent = 'Download';
+                download.style.display = 'block';
+                download.style.marginTop = '4px';
+                download.style.fontSize = '11px';
+                download.style.color = '#2563eb';
+
+                card.appendChild(img);
+                card.appendChild(label);
+                card.appendChild(download);
+                refs.captures.appendChild(card);
+            });
+        }
+
+        function advanceStep() {
+            currentStepIndex += 1;
+            stableCounter = 0;
+
+            if (currentStepIndex >= STEPS.length) {
+                completeScanning();
+            } else {
+                renderStepIndicators();
+                const step = STEPS[currentStepIndex];
+                updateStatus(`Now ${step.label.toLowerCase()}. Keep your face very close to the camera.`, `Step ${currentStepIndex + 1}`);
+            }
+        }
+
+        function onResults(results) {
+            const landmarks = results.multiFaceLandmarks?.[0];
+            const faceWidth = landmarks ? analyseDistance(landmarks) : null;
+            drawOverlay(landmarks, faceWidth);
+
+            if (!landmarks) {
+                if (scanning) {
+                    updateStatus('Face not found. Move into the frame.', 'Warning');
+                }
+                return;
+            }
+
+            if (!scanning) {
+                return;
+            }
+
+            if (faceWidth === null || faceWidth < MIN_FACE_WIDTH_RATIO) {
+                stableCounter = 0;
+                updateStatus('Move closer to the camera so your face fills the capture box.', 'Warning');
+                return;
+            }
+
+            const currentStep = STEPS[currentStepIndex];
+
+            if (!isPoseSatisfied(landmarks, currentStep.key)) {
+                stableCounter = 0;
+                updateStatus(`Hold steady and ${currentStep.label.toLowerCase()}.`, `Step ${currentStepIndex + 1}`);
+                return;
+            }
+
+            stableCounter += 1;
+            const progress = Math.round((stableCounter / STABLE_FRAMES_REQUIRED) * 100);
+            updateStatus(`Great! Holding still... ${progress}%`, `Step ${currentStepIndex + 1}`);
+
+            if (stableCounter >= STABLE_FRAMES_REQUIRED) {
+                capturePose(landmarks, currentStep.key);
+                renderStepIndicators();
+                advanceStep();
+            }
+        }
+
+        async function processFrame() {
+            if (refs.video.readyState >= 2 && faceMesh) {
+                await faceMesh.send({ image: refs.video });
+            }
+            requestAnimationFrame(processFrame);
+        }
+
+        async function init() {
+            renderStepIndicators();
+            await Promise.all([initCamera(), initFaceMesh()]);
+            processFrame();
+        }
+
+        refs.startButton.addEventListener('click', startScanning);
+
+        init();
+    </script>
+</body>
+</html>

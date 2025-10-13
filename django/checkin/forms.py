@@ -1,8 +1,12 @@
+import json
+
 from django import forms
 from django.contrib.auth.hashers import check_password, make_password
+from django.db import transaction
 from django.utils import timezone
 
 from .models import CheckInHistory, Employee
+from .services.face_enrollment import register_employee_faces
 
 
 class LoginForm(forms.Form):
@@ -39,6 +43,7 @@ class EmployeeForm(forms.ModelForm):
         required=False,
         help_text='Leave blank to keep the current password.',
     )
+    face_captures = forms.CharField(widget=forms.HiddenInput, required=False)
 
     class Meta:
         model = Employee
@@ -56,21 +61,57 @@ class EmployeeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._pending_face_captures: list[str] = []
         if not self.instance.pk:
             self.fields['password'].required = True
         for name, field in self.fields.items():
+            if isinstance(field.widget, forms.HiddenInput):
+                continue
             css = field.widget.attrs.get('class', '')
             field.widget.attrs['class'] = f"{css} form-control".strip()
         self.fields['is_admin'].widget.attrs['class'] = 'form-check-input'
+        self.fields['face_captures'].required = not self.instance.pk
 
     def save(self, commit=True):
         employee = super().save(commit=False)
         password = self.cleaned_data.get('password')
         if password:
             employee.password = make_password(password)
+        self._pending_face_captures = []
+        captures = self.cleaned_data.get('face_captures') or []
+
         if commit:
-            employee.save()
+            with transaction.atomic():
+                employee.save()
+                if captures:
+                    try:
+                        register_employee_faces(employee.employee_id, captures)
+                    except ValueError as exc:
+                        raise forms.ValidationError(str(exc)) from exc
+        else:
+            self._pending_face_captures = captures
         return employee
+
+    def clean_face_captures(self):
+        raw_value = self.cleaned_data.get('face_captures')
+        if not raw_value:
+            if self.instance.pk:
+                return []
+            raise forms.ValidationError('Capture three face images before saving.')
+
+        try:
+            parsed = json.loads(raw_value)
+        except json.JSONDecodeError as exc:
+            raise forms.ValidationError('Face capture data is invalid.') from exc
+
+        if not isinstance(parsed, list):
+            raise forms.ValidationError('Face capture data is invalid.')
+
+        sanitized = [value for value in parsed if isinstance(value, str) and value.strip()]
+        if len(sanitized) != 3:
+            raise forms.ValidationError('All three face poses are required.')
+
+        return sanitized
 
 
 class CheckInForm(forms.ModelForm):

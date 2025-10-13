@@ -1,3 +1,4 @@
+from django import forms as django_forms
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -38,9 +39,14 @@ def employee_list(request: HttpRequest) -> HttpResponse:
     form = EmployeeForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Employee created successfully.')
-        return redirect('checkin:employee_list')
+        try:
+            form.save()
+        except django_forms.ValidationError as exc:
+            for message in exc.messages:
+                form.add_error(None, message)
+        else:
+            messages.success(request, 'Employee created successfully.')
+            return redirect('checkin:employee_list')
 
     context = {
         'employees': employees,
@@ -55,9 +61,14 @@ def employee_edit(request: HttpRequest, pk: int) -> HttpResponse:
     employee = get_object_or_404(Employee, pk=pk)
     form = EmployeeForm(request.POST or None, instance=employee)
     if request.method == 'POST' and form.is_valid():
-        form.save()
-        messages.success(request, 'Employee updated successfully.')
-        return redirect('checkin:employee_list')
+        try:
+            form.save()
+        except django_forms.ValidationError as exc:
+            for message in exc.messages:
+                form.add_error(None, message)
+        else:
+            messages.success(request, 'Employee updated successfully.')
+            return redirect('checkin:employee_list')
 
     context = {
         'form': form,

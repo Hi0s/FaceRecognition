@@ -1,0 +1,6 @@
+#  Gitignore for django
+*.log
+*.pot
+*.pyc
+*.pyo
+__pycache__/

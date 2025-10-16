@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:ipad_demo/face_detection_painter.dart';
+import 'package:ipad_demo/api_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'dart:async';
@@ -31,11 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<CameraDescription> cameras = [];
   int _selectedCameraIndex = 0;
   CameraImage? _pendingCameraImage; // last frame that HAD a face
-  InputImage? _pendingInputImage;
   Size? _pendingSize; // raw size of that frame (w,h)
   Face? _pendingFace; // the chosen face for that frame
-  bool _captureBusy = false; // avoid double taps
-  DateTime _lastSendAt = DateTime.fromMillisecondsSinceEpoch(0);
   late final ValueNotifier<DateTime> _now = ValueNotifier(DateTime.now());
   Timer? _clock;
 
@@ -158,49 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return allBytes.done().buffer.asUint8List();
   }
 
-  Future<void> _onCheck(String mode) async {
-    //   // debounce
-    //   final now = DateTime.now();
-    //   if (now.difference(_lastSendAt) < const Duration(seconds: 2)) return;
-
-    //   if (_captureBusy) return;
-    //   _captureBusy = true;
-
-    //   try {
-    //     if (_pendingCameraImage == null || _pendingFace == null) {
-    //       // show a small hint: “No face detected. Please face the camera.”
-    //       // _dialogBuilder('No face detected. Please face the camera');
-    //       return;
-    //     }
-
-    //     // Optional quality gates (size + pose)
-    //     final bb = _pendingFace!.boundingBox;
-    //     final okSize = bb.width >= 160 && bb.height >= 160; // tune
-    //     final y = (_pendingFace!.headEulerAngleY ?? 0).abs();
-    //     final z = (_pendingFace!.headEulerAngleZ ?? 0).abs();
-    //     final frontal = y < 15 && z < 15;
-
-    //     if (!okSize || !frontal) {
-    //       // show hint: “Move closer / face the camera”
-    //       // _dialogBuilder('Move close / face the camera');
-    //       return;
-    //     }
-
-    // final pngImage =_cameraImageToPng(_pendingImage);
-    // final pngFace= _faceDetector.processImage(pngImage);
-
-    //   final bytes224 = await _buildFace224FromPending();
-    //   if (bytes224 == null) return;
-
-    //   await _postVerify(
-    //     bytes224,
-    //     mode: mode,
-    //   ); // POST to /verify (or /check) on your backend
-    //   _lastSendAt = now;
-    // } finally {
-    //   _captureBusy = false;
-  }
-
   // void _toggleCamera() async {
   //   if (cameras.isEmpty || cameras.length < 2) {
   //     print("Can't toggle camera. not enough cameras available");
@@ -235,16 +190,16 @@ class _HomeScreenState extends State<HomeScreen> {
         final List<Face> faces = await _faceDetector.processImage(inputImage);
         final primaryFace = _selectPrimaryFace(faces);
         if (mounted) {
-          setState(() async {
+          setState(() {
             _faces = primaryFace == null ? [] : [primaryFace]; // <<< only 1
             if (primaryFace != null) {
               _pendingCameraImage = image;
-              _pendingInputImage = inputImage;
               _pendingSize = Size(
                 image.width.toDouble(),
                 image.height.toDouble(),
               );
               _pendingFace = primaryFace;
+
               final jpgBytes = cropFaceToJpeg256(
                 _pendingCameraImage!,
                 _pendingFace!,
@@ -263,18 +218,18 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
-
-  Future<void> showImagePopup(BuildContext context, Uint8List jpgBytes) async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          content: Image.memory(jpgBytes),
-        );
-      },
-    );
-  }
+  // //used to test if 256x256 face image frame is capture correctly
+  //   Future<void> showImagePopup(BuildContext context, Uint8List jpgBytes) async {
+  //     showDialog(
+  //       context: context,
+  //       builder: (context) {
+  //         return AlertDialog(
+  //           contentPadding: EdgeInsets.zero,
+  //           content: Image.memory(jpgBytes),
+  //         );
+  //       },
+  //     );
+  //   }
 
   /// Crop detected face and export as 256x256 JPEG
   Uint8List? cropFaceToJpeg256(CameraImage cameraImage, Face face) {
@@ -370,82 +325,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Rect expandSquareClamp(Rect b, int W, int H, {double margin = 0.25}) {
-    final cx = b.left + b.width / 2, cy = b.top + b.height / 2;
-    final w = b.width * (1 + margin);
-    final h = b.height * (1 + margin);
-    final side = w > h ? w : h;
-
-    double left = cx - side / 2, top = cy - side / 2;
-    // clamp to edges
-    left = left.clamp(0.0, (W - side).toDouble());
-    top = top.clamp(0.0, (H - side).toDouble());
-    final s = side.clamp(1.0, W.toDouble()).clamp(1.0, H.toDouble()) as double;
-    return Rect.fromLTWH(left, top, s, s);
-  }
-
-  Uint8List cropBGRA(
-    Uint8List bgra,
-    int frameW,
-    int frameH,
-    int bytesPerRow,
-    Rect roi,
-  ) {
-    final x = roi.left.toInt(), y = roi.top.toInt();
-    final w = roi.width.toInt(), h = roi.height.toInt();
-    final out = Uint8List(w * h * 4);
-    int dst = 0;
-
-    for (int row = 0; row < h; row++) {
-      final srcRowStart = (y + row) * bytesPerRow + x * 4;
-      out.setRange(
-        dst,
-        dst + w * 4,
-        bgra.sublist(srcRowStart, srcRowStart + w * 4),
-      );
-      dst += w * 4;
-    }
-    return out; // BGRA cropped buffer
-  }
-
-  Uint8List _cameraImageToPng(CameraImage? camImage) {
-    if (camImage == null) {}
-    //Convert BGRA8888 raw iOS image to RGBA
-    final plane = camImage!.planes.first;
-    final src = plane.bytes;
-    final rgba = Uint8List(src.length);
-    for (int i = 0; i < src.length; i += 4) {
-      rgba[i + 0] = src[i + 2]; //R
-      rgba[i + 1] = src[i + 1]; //G
-      rgba[i + 2] = src[i + 0]; //B
-      rgba[i + 3] = src[i + 3]; //A
-    }
-
-    final image = img.Image.fromBytes(
-      width: camImage.width,
-      height: camImage.height,
-      bytes: rgba.buffer,
-      numChannels: 4,
-    );
-
-    final pngBytes = Uint8List.fromList(img.encodePng(image));
-    return pngBytes;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Face Attendance App"),
-        actions: [
-          // if (cameras.length > 1)
-          //   IconButton(
-          //     onPressed: _toggleCamera,
-          //     icon: Icon(CupertinoIcons.switch_camera_solid),
-          //     color: Colors.lightBlueAccent,
-          //   ),actions: [
-        ],
-      ),
+      appBar: AppBar(title: Text("Face Attendance App")),
       body:
           _initializeControllerFuture == null
               ? Center(child: Text("No Camera Available"))
@@ -462,10 +345,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         CustomPaint(
                           painter: FaceDetectionPainter(
                             faces: _faces,
-                            // imageSize: Size(
-                            //   _controller!.value.previewSize!.height,
-                            //   _controller!.value.previewSize!.width,
-                            // ),
                             imageSize: _pendingSize ?? const Size(1, 1),
                             cameraLensDirection:
                                 _controller!.description.lensDirection,
@@ -497,62 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color.fromARGB(
-                                      255,
-                                      255,
-                                      255,
-                                      255,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 30,
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () => _onCheck('in'),
-                                  child: const Text(
-                                    'Check In',
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ),
-                                SizedBox(width: 50),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color.fromARGB(
-                                      255,
-                                      255,
-                                      255,
-                                      255,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 30,
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () => _onCheck('out'),
-                                  child: const Text(
-                                    'Check Out',
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+
                         Positioned(
                           top: 20,
                           right: 0,

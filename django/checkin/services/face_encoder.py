@@ -1,6 +1,7 @@
 import base64
 import logging
 from pathlib import Path
+from time import time
 from typing import Iterable, List
 
 import numpy as np
@@ -50,18 +51,15 @@ def _load_model() -> tf.keras.Model:
         return _MODEL
 
     if _KERAS_MODEL_PATH.exists():
-        _MODEL = tf.keras.models.load_model(_KERAS_MODEL_PATH, compile=False)
+        model = _build_embedding_model()
+        model.load_weights(_KERAS_MODEL_PATH)
+        _MODEL = model
         return _MODEL
 
     raise FileNotFoundError('Encoder model keras file not found.')
 
 
 
-# Load the model once when the module is imported so predictions are ready.
-try:
-    _load_model()
-except Exception as exc:  # pylint: disable=broad-except
-    _LOGGER.warning("Face encoder model not loaded at startup: %s", exc)
 
 
 def _preprocess_image_bytes(image_bytes: bytes) -> tf.Tensor:
@@ -78,24 +76,24 @@ def _decode_data_url(data_url: str) -> bytes:
     return base64.b64decode(data_url)
 
 
-def encode_base64_images(data_urls: Iterable[str]) -> np.ndarray:
-    model = _load_model()
-    tensors: List[tf.Tensor] = []
-    for data_url in data_urls:
-        image_bytes = _decode_data_url(data_url)
-        tensors.append(_preprocess_image_bytes(image_bytes))
-
-    if not tensors:
-        raise ValueError('At least one image is required to encode.')
-
-    batch = tf.stack(tensors, axis=0)
-    embeddings = model(batch, training=False)
-    return embeddings.numpy().astype('float32')
-
-
-def encode_image_file(image_bytes: bytes) -> np.ndarray:
+def encode_image_file(image_bytes: bytes, employee_id: int, recognize: bool) -> np.ndarray:
     model = _load_model()
     tensor = _preprocess_image_bytes(image_bytes)
+    if settings.DEBUG:
+        try:
+            debug_tensor = tf.image.convert_image_dtype(tensor, dtype=tf.uint8, saturate=True)
+            if recognize: 
+                 tf.io.write_file(
+                f'image.jpg',
+                tf.image.encode_jpeg(debug_tensor),
+                ) 
+            else:  
+                tf.io.write_file(
+                    f'image/employee_{employee_id}/image_{int(time())}.jpg',
+                    tf.image.encode_jpeg(debug_tensor),
+                )
+        except Exception as exc:
+            _LOGGER.warning('Failed to write debug image for %s: %s', employee_id, exc)
     batch = tf.expand_dims(tensor, axis=0)
-    embedding = model(batch, training=False)
-    return embedding.numpy().astype('float32')[0]
+    embedding = model.predict(batch)
+    return embedding

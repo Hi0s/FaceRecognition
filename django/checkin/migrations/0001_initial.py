@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name='Employee',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('employee_id', models.CharField(max_length=32, unique=True)),
+                ('employee_id', models.IntegerField(unique=True)),
                 ('employee_name', models.CharField(max_length=255)),
                 ('employee_birth', models.DateField()),
                 ('employee_gender', models.CharField(choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')], max_length=10)),

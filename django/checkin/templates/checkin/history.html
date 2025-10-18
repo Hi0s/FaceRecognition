@@ -1,4 +1,5 @@
 {% extends 'checkin/base.html' %}
+{% load tz %}
 {% block title %}History • Face Check-In{% endblock %}
 {% block content %}
 <div class="row g-4">
@@ -67,7 +68,7 @@
                     <span class="badge bg-warning">Check Out</span>
                   {% endif %}
                 </td>
-                <td>{{ item.created_at|date:'Y-m-d H:i' }}</td>
+                <td>{{ item.created_at }}</td>
               </tr>
             {% empty %}
               <tr>

@@ -176,6 +176,10 @@
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#faceCaptureModal" id="openFaceCapture">
                   <i class="ti ti-camera"></i> Capture Poses
                 </button>
+                <label class="btn btn-outline-secondary mb-0">
+                  <input type="file" id="faceCaptureUpload" class="visually-hidden" accept="image/*" capture="environment" multiple>
+                  <i class="ti ti-upload"></i> Upload Images
+                </label>
                 <span id="faceCaptureStatus" class="text-muted small">No captures yet.</span>
               </div>
               {{ form.face_captures }}
@@ -183,7 +187,7 @@
               {% if form.face_captures.errors %}
                 <small class="text-danger">{{ form.face_captures.errors.0 }}</small>
               {% else %}
-                <small class="text-muted">Capture the required center, left, and right poses.</small>
+                <small class="text-muted">Capture the required center, left, and right poses or upload existing photos.</small>
               {% endif %}
             </div>
           </div>
@@ -262,9 +266,9 @@
             <div class="col-sm-auto">
               <div class="input-group input-group-sm w-auto">
                 <span class="input-group-text">Image size</span>
-                <input class="form-control" id="captureWidthInput" type="number" value="224" min="96" max="512">
+                <input class="form-control" id="captureWidthInput" type="number" value="256" min="96" max="512">
                 <span class="input-group-text">×</span>
-                <input class="form-control" id="captureHeightInput" type="number" value="224" min="96" max="512">
+                <input class="form-control" id="captureHeightInput" type="number" value="256" min="96" max="512">
               </div>
             </div>
             <div class="col">
@@ -309,6 +313,7 @@
         widthInput: document.getElementById('captureWidthInput'),
         heightInput: document.getElementById('captureHeightInput'),
       };
+      const uploadInput = document.getElementById('faceCaptureUpload');
 
       let overlayCtx = refs.overlay.getContext('2d');
       let faceMesh = null;
@@ -396,6 +401,38 @@
         });
         hiddenInput.value = ordered.length ? JSON.stringify(ordered) : '';
         renderThumbs();
+      }
+
+      function handleFileUpload(event) {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) {
+          return;
+        }
+        const readers = files.map(
+          file =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            }),
+        );
+        Promise.all(readers)
+          .then(dataUrls => {
+            capturedImages.clear();
+            dataUrls.slice(0, STEPS.length).forEach((url, index) => {
+              capturedImages.set(STEPS[index].key, url);
+            });
+            renderCards();
+            updateHiddenInput();
+            updateStatus('Loaded images from upload.', 'Status');
+          })
+          .catch(() => {
+            updateStatus('Failed to read selected files.', 'Error');
+          })
+          .finally(() => {
+            uploadInput.value = '';
+          });
       }
 
       function analyseDistance(landmarks) {
@@ -660,7 +697,6 @@
                 capturedImages.set(step.key, parsed[index]);
               }
             });
-            renderThumbs();
           }
         }
       } catch (err) {
@@ -668,6 +704,10 @@
       }
 
       renderThumbs();
+
+      if (uploadInput) {
+        uploadInput.addEventListener('change', handleFileUpload);
+      }
     })();
   </script>
 {% endblock %}

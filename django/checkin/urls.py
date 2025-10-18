@@ -11,4 +11,5 @@ urlpatterns = [
     path('employees/<int:pk>/edit/', views.employee_edit, name='employee_edit'),
     path('employees/<int:pk>/delete/', views.employee_delete, name='employee_delete'),
     path('history/', views.history_view, name='history'),
+    path('api/face-match/', views.face_match_api, name='face_match_api'),
 ]

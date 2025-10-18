@@ -46,7 +46,7 @@ class FaceIndex:
                 raise ValueError('Vector must be 1-dimensional.')
             id_array = np.asarray([idx], dtype='int64')
             self._index.remove_ids(id_array)
-            self._index.add_with_ids(vector.astype('float32')[np.newaxis, :], id_array)
+            self._index.add_with_ids(np.array([vector], dtype='float32'), np.array([idx], dtype='int64'))
             self._save()
 
     def remove_id(self, idx: int) -> None:

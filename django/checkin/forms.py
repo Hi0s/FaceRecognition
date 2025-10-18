@@ -10,7 +10,7 @@ from .services.face_enrollment import register_employee_faces
 
 
 class LoginForm(forms.Form):
-    employee_id = forms.CharField(label='Employee ID', max_length=32)
+    employee_id = forms.IntegerField(label='Employee ID')
     password = forms.CharField(widget=forms.PasswordInput)
 
     def __init__(self, *args, **kwargs):

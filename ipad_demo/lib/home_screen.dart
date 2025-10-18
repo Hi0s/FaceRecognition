@@ -1,4 +1,6 @@
-﻿import 'package:flutter/foundation.dart';
+﻿import 'dart:isolate';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -156,6 +158,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return allBytes.done().buffer.asUint8List();
   }
 
+  String handleFace(pendingCameraImage, pendingFace) {
+    final jpgBytes = cropFaceToJpeg256(pendingCameraImage!, pendingFace!);
+    print('12345');
+    if (jpgBytes != null) {
+      // Todo Call api send image
+      // ApiService api = new ApiService();
+      // var response;
+      // response = api.upload(jpgBytes);
+      // }
+    }
+    return '123';
+  }
+
   // void _toggleCamera() async {
   //   if (cameras.isEmpty || cameras.length < 2) {
   //     print("Can't toggle camera. not enough cameras available");
@@ -191,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final primaryFace = _selectPrimaryFace(faces);
         if (mounted) {
           setState(() {
-            _faces = primaryFace == null ? [] : [primaryFace]; // <<< only 1
+            _faces = primaryFace == null ? [] : [primaryFace];
             if (primaryFace != null) {
               _pendingCameraImage = image;
               _pendingSize = Size(
@@ -199,17 +214,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 image.height.toDouble(),
               );
               _pendingFace = primaryFace;
-
-              final jpgBytes = cropFaceToJpeg256(
-                _pendingCameraImage!,
-                _pendingFace!,
-              );
-              if (jpgBytes != null) {
-                // Todo Call api send image
-                // json = jsonFetch()
-              }
             }
           });
+          // --- ✅ Isolate-safe processing ---
+          final face = _pendingFace;
+          final pendingImage = _pendingCameraImage;
+
+          if (face != null && pendingImage != null) {
+            final jpgBytes = await Isolate.run(() {
+              return handleFace(_pendingCameraImage, _pendingFace);
+            });
+          }
         }
       } catch (e) {
         print(e);

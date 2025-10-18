@@ -11,27 +11,24 @@ class ApiService {
   var getResultUri;
 
   ApiService() {
-    if (Platform.isIOS) {
-      url = "https://jsonplaceholder.typicode.com/";
-    }
-    uploadUri = Uri.parse('$url/api/uploadImage');
-    getResultUri = Uri.parse('$url/api/getResult');
+    // if (Platform.isIOS) {
+    url = "http://192.168.0.174:8000";
+    // }
+    uploadUri = Uri.parse('$url/api/face-match/');
+    // getResultUri = Uri.parse('$url/api/getResult');
   }
 
-  Upload(Uint8List img) async {
+  upload(Uint8List img) async {
     try {
-      var token = await storage.read(key: 'token');
-      var request = new http.MultipartRequest('POST', uploadUri);
-      Map<String, String> headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Token $token',
-      };
-      request.headers.addAll(headers);
-      request.files.add(await http.MultipartFile.fromBytes("face image", img));
+      var request = http.MultipartRequest('POST', uploadUri);
+      request.files.add(
+        http.MultipartFile.fromBytes('image', img, filename: 'upload.jpg'),
+      );
 
       var response = await request.send();
       final respStr = await response.stream.bytesToString();
+      print('Response status: ${response.statusCode}');
+      print('Response body: $respStr');
       return response;
     } catch (e) {
       return 0;

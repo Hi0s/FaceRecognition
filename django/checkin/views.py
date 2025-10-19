@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 
 from .decorators import admin_required
@@ -99,11 +100,16 @@ def history_view(request: HttpRequest) -> HttpResponse:
     history_qs = CheckInHistory.objects.select_related('employee')
     employee_id = request.GET.get('employee')
     check_type = request.GET.get('check_type')
+    date_input = request.GET.get('date')
 
     if employee_id:
         history_qs = history_qs.filter(employee__employee_id__icontains=employee_id)
     if check_type in {'in', 'out'}:
         history_qs = history_qs.filter(check_type=check_type)
+
+    date_input = parse_date(date_input) if date_input else None
+    if date_input:
+        history_qs = history_qs.filter(created_at=date_input)
 
     form = CheckInForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
@@ -117,6 +123,7 @@ def history_view(request: HttpRequest) -> HttpResponse:
         'form': form,
         'employees': Employee.objects.all(),
         'active_nav': 'history',
+        'date': date_input or '',
     }
     return render(request, 'checkin/history.html', context)
 
@@ -182,6 +189,8 @@ def face_match_api(request: HttpRequest) -> JsonResponse:
 
     form.save()
 
+    print(f"Matched employee ID {best_employee.employee_id} "
+          f"({best_employee.employee_name}) with distance {best_distance:.4f}.")
     return JsonResponse(
         {
             'employee_id': best_employee.employee_id,

@@ -1,24 +1,22 @@
-﻿import 'dart:io';
-import 'dart:math';
+﻿import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  final storage = FlutterSecureStorage();
   String url = "";
   var uploadUri;
   var getResultUri;
 
   ApiService() {
     // if (Platform.isIOS) {
-    url = "http://192.168.0.174:8000";
+    url = "http://192.168.100.5:8000";
     // }
     uploadUri = Uri.parse('$url/api/face-match/');
     // getResultUri = Uri.parse('$url/api/getResult');
   }
 
-  upload(Uint8List img) async {
+  Future<Map<String, dynamic>?> upload(Uint8List img) async {
     try {
       var request = http.MultipartRequest('POST', uploadUri);
       request.files.add(
@@ -29,9 +27,21 @@ class ApiService {
       final respStr = await response.stream.bytesToString();
       print('Response status: ${response.statusCode}');
       print('Response body: $respStr');
-      return response;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final decoded = jsonDecode(respStr) as Map<String, dynamic>;
+          return decoded;
+        } catch (e) {
+          if (kDebugMode) {
+            print('Failed to decode response json: $e');
+          }
+          return null;
+        }
+      }
+      return null;
     } catch (e) {
-      return 0;
+      print('Error uploading image: $e');
+      return null;
     }
   }
 }

@@ -56,40 +56,10 @@ class FaceDetectionPainter extends CustomPainter {
           (face.boundingBox.top + face.boundingBox.height) * scaleY;
 
       canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), facePaint);
-      void drawLandmark(FaceLandmarkType type) {
-        if (face.landmarks[type] != null) {
-          final point = face.landmarks[type]!.position;
-          double pointX = point.x.toDouble();
-          if (cameraLensDirection == CameraLensDirection.front) {
-            pointX = imageSize.width;
-          }
-          canvas.drawCircle(
-            Offset(pointX * scaleX, point.y * scaleY),
-            4.0,
-            landmarkPaint,
-          );
-        }
-      }
-
-      drawLandmark(FaceLandmarkType.leftEye);
-      drawLandmark(FaceLandmarkType.rightEye);
-      drawLandmark(FaceLandmarkType.noseBase);
-      drawLandmark(FaceLandmarkType.leftMouth);
-      drawLandmark(FaceLandmarkType.rightMouth);
-      drawLandmark(FaceLandmarkType.bottomMouth);
-
-      String mood = 'Neutral';
-      final smileProb = face.smilingProbability ?? 0;
-      if (smileProb > 0.8) {
-        mood = 'Laughing 😂';
-      } else if (smileProb > 0.5) {
-        mood = 'Smiling 😊';
-      } else if (smileProb < 0.1) {
-        mood = 'Serious 🙄';
-      }
+  
 
       final TextSpan faceIdSpan = TextSpan(
-        text: 'Face ${i + 1}\n$mood',
+        text: 'Face',
         style: TextStyle(
           color: Colors.white,
           fontSize: 14,

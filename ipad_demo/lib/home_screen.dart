@@ -1,6 +1,4 @@
-﻿import 'dart:isolate';
-
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -30,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
   bool _isDetecting = false;
+  bool _handleInProgress = false;
   List<Face> _faces = [];
   List<CameraDescription> cameras = [];
   int _selectedCameraIndex = 0;
@@ -38,6 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Face? _pendingFace; // the chosen face for that frame
   late final ValueNotifier<DateTime> _now = ValueNotifier(DateTime.now());
   Timer? _clock;
+  DateTime? _lastHandleAt;
+  final Duration _handleInterval = const Duration(milliseconds: 200);
+  String? _detectedEmployeeName;
+  DateTime? _nextRecognitionAllowedAt;
+  Timer? _clearNameTimer;
+  final Duration _recognitionCooldown = const Duration(seconds: 5);
 
   @override
   void initState() {
@@ -52,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _clock?.cancel();
+    _clearNameTimer?.cancel();
     _now.dispose();
     _controller?.dispose();
     _faceDetector.close();
@@ -71,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _initializeCameras() async {
+  Future<void> _initializeCameras() async {  
     try {
       cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -94,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initializeCamera(CameraDescription cameraDescription) async {
     final controller = CameraController(
       cameraDescription,
-      ResolutionPreset.ultraHigh,
+      ResolutionPreset.high,
       enableAudio: false,
       imageFormatGroup:
           Platform.isIOS ? ImageFormatGroup.bgra8888 : ImageFormatGroup.yuv420,
@@ -158,17 +164,68 @@ class _HomeScreenState extends State<HomeScreen> {
     return allBytes.done().buffer.asUint8List();
   }
 
-  String handleFace(pendingCameraImage, pendingFace) {
-    final jpgBytes = cropFaceToJpeg256(pendingCameraImage!, pendingFace!);
-    print('12345');
-    if (jpgBytes != null) {
-      // Todo Call api send image
-      // ApiService api = new ApiService();
-      // var response;
-      // response = api.upload(jpgBytes);
-      // }
+  Future<String?> handleFace(
+    CameraImage pendingCameraImage,
+    Face pendingFace,
+  ) async {
+    final jpgBytes = cropFaceToJpeg256(pendingCameraImage, pendingFace);
+    if (jpgBytes == null) {
+      return null;
     }
-    return '123';
+
+    final api = ApiService();
+    final Map<String, dynamic>? response = await api.upload(jpgBytes);
+    if (response == null) {
+      return null;
+    }
+    final employeeName = response['employee_name'];
+    if (employeeName == null) {
+      return null;
+    }
+    if (employeeName is String) {
+      return employeeName;
+    }
+    return employeeName.toString();
+  }
+
+  void _maybeHandleFace(CameraImage image, Face face) {
+    final DateTime now = DateTime.now();
+    if (_handleInProgress) return;
+    if (_lastHandleAt != null &&
+        now.difference(_lastHandleAt!) < _handleInterval) {
+      return;
+    }
+    if (_nextRecognitionAllowedAt != null &&
+        now.isBefore(_nextRecognitionAllowedAt!)) {
+      return;
+    }
+
+    _handleInProgress = true;
+    Future<void>(() async {
+      final result = await handleFace(image, face);
+      if (result != null && mounted) {
+        debugPrint('Hi $result');
+        setState(() {
+          _detectedEmployeeName = result;
+        });
+        final DateTime cooldownUntil =
+            DateTime.now().add(_recognitionCooldown);
+        _nextRecognitionAllowedAt = cooldownUntil;
+        _clearNameTimer?.cancel();
+        _clearNameTimer = Timer(_recognitionCooldown, () {
+          if (!mounted) return;
+          setState(() {
+            _detectedEmployeeName = null;
+          });
+          _nextRecognitionAllowedAt = null;
+        });
+      }
+    }).catchError((error, _) {
+      debugPrint('handleFace error: $error');
+    }).whenComplete(() {
+      _lastHandleAt = DateTime.now();
+      _handleInProgress = false;
+    });
   }
 
   // void _toggleCamera() async {
@@ -206,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final primaryFace = _selectPrimaryFace(faces);
         if (mounted) {
           setState(() {
+            print('detected ${faces.length} faces');
             _faces = primaryFace == null ? [] : [primaryFace];
             if (primaryFace != null) {
               _pendingCameraImage = image;
@@ -214,17 +272,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 image.height.toDouble(),
               );
               _pendingFace = primaryFace;
-            }
+            } 
           });
-          // --- ✅ Isolate-safe processing ---
-          final face = _pendingFace;
-          final pendingImage = _pendingCameraImage;
-
-          if (face != null && pendingImage != null) {
-            final jpgBytes = await Isolate.run(() {
-              return handleFace(_pendingCameraImage, _pendingFace);
-            });
-          }
+        }
+        if (primaryFace != null) {
+          _maybeHandleFace(image, primaryFace);
         }
       } catch (e) {
         print(e);
@@ -282,17 +334,48 @@ class _HomeScreenState extends State<HomeScreen> {
         throw Exception('Unsupported format: ${cameraImage.format.group}');
       }
 
-      // 2️⃣ Get the bounding box from MLKit face detection
+      // 2️⃣ Derive a square face crop similar to employee_list computeFaceBox
       final rect = face.boundingBox;
+      final double centerX = rect.left + rect.width / 2;
+      final double centerY = rect.top + rect.height / 2;
 
-      // Ensure crop bounds are valid
-      final x = rect.left.clamp(0, baseImage.width - 1).toInt();
-      final y = rect.top.clamp(0, baseImage.height - 1).toInt();
-      final w = rect.width.clamp(1, baseImage.width - x).toInt();
-      final h = rect.height.clamp(1, baseImage.height - y).toInt();
+      double size = rect.width > rect.height ? rect.width : rect.height;
+      size *= 1.1; // add a little padding around the face
+
+      final double minSide =
+          baseImage.width < baseImage.height ? baseImage.width.toDouble() : baseImage.height.toDouble();
+      if (size > minSide) {
+        size = minSide;
+      }
+
+      double left = centerX - size / 2;
+      double top = centerY - size / 2;
+
+      if (left < 0) left = 0;
+      if (top < 0) top = 0;
+      if (left + size > baseImage.width) {
+        left = baseImage.width - size;
+      }
+      if (top + size > baseImage.height) {
+        top = baseImage.height - size;
+      }
+      if (left < 0) left = 0;
+      if (top < 0) top = 0;
+
+      int x = left.round();
+      int y = top.round();
+      int side = size.round();
+      if (side < 1) side = 1;
+      if (x < 0) x = 0;
+      if (y < 0) y = 0;
+      if (x >= baseImage.width) x = baseImage.width - 1;
+      if (y >= baseImage.height) y = baseImage.height - 1;
+      if (x + side > baseImage.width) side = baseImage.width - x;
+      if (y + side > baseImage.height) side = baseImage.height - y;
+      if (side < 1) side = 1;
 
       // 3️⃣ Crop and resize to 256x256
-      final cropped = img.copyCrop(baseImage, x: x, y: y, width: w, height: h);
+      final cropped = img.copyCrop(baseImage, x: x, y: y, width: side, height: side);
       final resized = img.copyResize(cropped, width: 256, height: 256);
 
       // 4️⃣ Encode as JPEG
@@ -368,25 +451,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         Positioned(
                           top: 20,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 8,
-                                horizontal: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Name: ${_faces.length}',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          left: 16,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Hi ${_detectedEmployeeName ?? ''}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),

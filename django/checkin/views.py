@@ -150,13 +150,14 @@ def face_match_api(request: HttpRequest) -> JsonResponse:
     except Exception:
         return JsonResponse({'detail': 'Search failed.'}, status=500)
 
-    threshold = 0.45
+    threshold = 0.8
     matches = []
     best_employee = None
     best_distance = None
     best_name = None
 
     for idx, distance in results:
+        print(f"Search result: idx={idx}, distance={distance:.4f}")
         if idx == -1 or distance > threshold:
             continue
         employee_id = idx // 100 if idx >= 0 else None
@@ -179,7 +180,6 @@ def face_match_api(request: HttpRequest) -> JsonResponse:
                     best_employee = employee
                     best_distance = distance
                     best_name = employee_name
-
     if best_employee is None:
         return JsonResponse({'employee_id': None, 'distance': None, 'matches': []}, status=200)
 

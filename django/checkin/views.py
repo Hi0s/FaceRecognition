@@ -1,9 +1,12 @@
 import json
+from datetime import timedelta
+from math import isclose
 from django import forms as django_forms
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
 
@@ -128,6 +131,105 @@ def history_view(request: HttpRequest) -> HttpResponse:
     return render(request, 'checkin/history.html', context)
 
 
+def _calculate_work_duration(records) -> timedelta:
+    ordered_records = sorted(records, key=lambda item: item.created_at)
+    total = timedelta()
+    current_check_in = None
+
+    for record in ordered_records:
+        timestamp = timezone.localtime(record.created_at)
+        if record.check_type == 'in':
+            current_check_in = timestamp
+        elif record.check_type == 'out' and current_check_in is not None:
+            if timestamp > current_check_in:
+                total += timestamp - current_check_in
+            current_check_in = None
+
+    return total
+
+
+@admin_required
+def workdays_view(request: HttpRequest) -> HttpResponse:
+    employee_query = request.GET.get('employee', '').strip()
+    start_input = request.GET.get('start')
+    end_input = request.GET.get('end')
+
+    today = timezone.localdate()
+    default_start = today - timedelta(days=6)
+    default_end = today
+
+    start_date = parse_date(start_input) if start_input else default_start
+    end_date = parse_date(end_input) if end_input else default_end
+
+    if start_date and end_date and end_date < start_date:
+        start_date, end_date = end_date, start_date
+
+    history_qs = CheckInHistory.objects.select_related('employee')
+
+    if employee_query:
+        history_qs = history_qs.filter(employee__employee_id__icontains=employee_query)
+    if start_date:
+        history_qs = history_qs.filter(created_at__date__gte=start_date)
+    if end_date:
+        history_qs = history_qs.filter(created_at__date__lte=end_date)
+
+    history_qs = history_qs.order_by('employee__employee_name', 'created_at')
+
+    grouped = {}
+    for record in history_qs:
+        local_dt = timezone.localtime(record.created_at)
+        workday = local_dt.date()
+        key = (record.employee_id, workday)
+        entry = grouped.setdefault(
+            key,
+            {
+                'employee': record.employee,
+                'date': workday,
+                'records': [],
+            },
+        )
+        entry['records'].append(record)
+
+    workday_rows = []
+    for entry in grouped.values():
+        total_duration = _calculate_work_duration(entry['records'])
+        hours = total_duration.total_seconds() / 3600
+        if hours > 8.0 + 1e-3:
+            badge = 'bg-primary'
+            status = 'Above 8 hours'
+        elif isclose(hours, 8.0, abs_tol=0.01):
+            badge = 'bg-success'
+            status = 'Exactly 8 hours'
+        else:
+            badge = 'bg-danger'
+            status = 'Below 8 hours'
+
+        workday_rows.append(
+            {
+                'employee': entry['employee'],
+                'date': entry['date'],
+                'hours': hours,
+                'hours_display': f"{hours:.2f}",
+                'status': status,
+                'badge_class': badge,
+                'records': sorted(entry['records'], key=lambda item: item.created_at),
+            },
+        )
+
+    workday_rows.sort(
+        key=lambda item: (-item['date'].toordinal(), item['employee'].employee_name.lower()),
+    )
+
+    context = {
+        'workday_rows': workday_rows,
+        'employee_query': employee_query,
+        'start_date': start_date,
+        'end_date': end_date,
+        'employees': Employee.objects.all().order_by('employee_name'),
+        'active_nav': 'workdays',
+    }
+    return render(request, 'checkin/workdays.html', context)
+
 @csrf_exempt
 def face_match_api(request: HttpRequest) -> JsonResponse:
     if request.method != 'POST':
@@ -180,6 +282,7 @@ def face_match_api(request: HttpRequest) -> JsonResponse:
                     best_employee = employee
                     best_distance = distance
                     best_name = employee_name
+
     if best_employee is None:
         return JsonResponse({'employee_id': None, 'distance': None, 'matches': []}, status=200)
 

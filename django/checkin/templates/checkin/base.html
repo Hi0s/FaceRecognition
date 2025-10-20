@@ -37,6 +37,9 @@
                 <a href="{% url 'checkin:history' %}" class="btn {% if active_nav == 'history' %}btn-primary{% else %}btn-outline-primary{% endif %}">
                   <i class="ti ti-clock"></i> History
                 </a>
+                <a href="{% url 'checkin:workdays' %}" class="btn {% if active_nav == 'workdays' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                  <i class="ti ti-calendar-stats"></i> Workdays
+                </a>
               </div>
             </div>
           </div>

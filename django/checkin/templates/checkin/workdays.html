@@ -1,0 +1,77 @@
+{% extends 'checkin/base.html' %}
+{% load tz %}
+{% block title %}Workdays • Face Check-In{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Workdays Summary</h3>
+  </div>
+  <div class="card-body border-bottom py-2">
+    <form class="row g-2 align-items-end" method="get">
+      <div class="col-md-3">
+        <label class="form-label text-muted text-uppercase small mb-1">Employee ID</label>
+        <input type="text" class="form-control" name="employee" placeholder="Search by ID" value="{{ employee_query }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label text-muted text-uppercase small mb-1">Start Date</label>
+        <input type="date" class="form-control" name="start" value="{{ start_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label text-muted text-uppercase small mb-1">End Date</label>
+        <input type="date" class="form-control" name="end" value="{{ end_date|date:'Y-m-d' }}">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-primary w-100" type="submit">Apply Filters</button>
+      </div>
+    </form>
+    <p class="text-muted small mb-0 mt-2">
+      Showing results between {{ start_date|date:'Y-m-d' }} and {{ end_date|date:'Y-m-d' }}.
+    </p>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Employee</th>
+          <th>Hours Worked</th>
+          <th>Status</th>
+          <th>Sessions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in workday_rows %}
+          <tr>
+            <td>{{ row.date }}</td>
+            <td>
+              <div class="fw-bold">{{ row.employee.employee_name }}</div>
+              <small class="text-muted">{{ row.employee.employee_id }}</small>
+            </td>
+            <td>{{ row.hours_display }}</td>
+            <td>
+              <span class="badge {{ row.badge_class }}">{{ row.status }}</span>
+            </td>
+            <td>
+              {% if row.records %}
+                <div class="d-flex flex-wrap gap-1">
+                  {% for record in row.records %}
+                    <span class="badge bg-secondary-subtle text-dark">
+                      {{ record.created_at|localtime|date:'H:i' }} • {{ record.get_check_type_display }}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="text-muted">No entries</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">No workday data for the selected range.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

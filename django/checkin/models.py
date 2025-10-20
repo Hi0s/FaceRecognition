@@ -9,7 +9,7 @@ class Employee(models.Model):
         ('other', 'Other'),
     ]
 
-    employee_id = models.IntegerField(unique=True)
+    employee_id = models.IntegerField(primary_key=True)
     employee_name = models.CharField(max_length=255)
     employee_birth = models.DateField()
     employee_gender = models.CharField(max_length=10, choices=GENDER_CHOICES)

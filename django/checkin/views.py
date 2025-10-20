@@ -90,8 +90,8 @@ def employee_edit(request: HttpRequest, pk: int) -> HttpResponse:
 def employee_delete(request: HttpRequest, pk: int) -> HttpResponse:
     employee = get_object_or_404(Employee, pk=pk)
     if request.method == 'POST':
-        employee.delete()
         face_index.remove_id(employee.employee_id)
+        employee.delete()
         messages.success(request, 'Employee deleted successfully.')
         return redirect('checkin:employee_list')
     context = {'employee': employee, 'active_nav': 'employees'}

@@ -422,6 +422,23 @@
             return { x, y, width: boxSize, height: boxSize };
         }
 
+        function computeSquareCrop(box, frameWidth, frameHeight) {
+            const boxWidthPx = box.width * frameWidth;
+            const boxHeightPx = box.height * frameHeight;
+            const centerX = box.x * frameWidth + boxWidthPx / 2;
+            const centerY = box.y * frameHeight + boxHeightPx / 2;
+            const squareSizePx = Math.min(
+                Math.max(boxWidthPx, boxHeightPx),
+                Math.min(frameWidth, frameHeight),
+            );
+            const halfSize = squareSizePx / 2;
+            const maxX = Math.max(frameWidth - squareSizePx, 0);
+            const maxY = Math.max(frameHeight - squareSizePx, 0);
+            const sourceX = clamp(centerX - halfSize, 0, maxX);
+            const sourceY = clamp(centerY - halfSize, 0, maxY);
+            return { x: sourceX, y: sourceY, size: squareSizePx };
+        }
+
         function drawOverlay(landmarks, faceWidth) {
             overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
             if (!landmarks) {
@@ -434,11 +451,12 @@
             const isNear = typeof faceWidth === 'number' && faceWidth >= MIN_FACE_WIDTH_RATIO;
             overlayCtx.strokeStyle = isNear ? '#22c55e' : '#ef4444';
             overlayCtx.lineWidth = 3;
+            const crop = computeSquareCrop(box, scaleX, scaleY);
             overlayCtx.strokeRect(
-                box.x * scaleX,
-                box.y * scaleY,
-                box.width * scaleX,
-                box.height * scaleY
+                crop.x,
+                crop.y,
+                crop.size,
+                crop.size
             );
         }
 
@@ -452,20 +470,17 @@
             captureCanvas.height = targetHeight;
             const captureCtx = captureCanvas.getContext('2d');
 
-            const sourceX = box.x * refs.video.videoWidth;
-            const sourceY = box.y * refs.video.videoHeight;
-            const sourceWidth = box.width * refs.video.videoWidth;
-            const sourceHeight = box.height * refs.video.videoHeight;
+            const crop = computeSquareCrop(box, refs.video.videoWidth, refs.video.videoHeight);
 
             captureCtx.save();
             captureCtx.translate(targetWidth, 0);
             captureCtx.scale(-1, 1);
             captureCtx.drawImage(
                 refs.video,
-                sourceX,
-                sourceY,
-                sourceWidth,
-                sourceHeight,
+                crop.x,
+                crop.y,
+                crop.size,
+                crop.size,
                 0,
                 0,
                 targetWidth,

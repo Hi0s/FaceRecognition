@@ -87,6 +87,7 @@ class EmployeeForm(forms.ModelForm):
                     try:
                         register_employee_faces(employee.employee_id, captures)
                     except ValueError as exc:
+                        print("Error in registering employee faces:", str(exc))
                         raise forms.ValidationError(str(exc)) from exc
         else:
             self._pending_face_captures = captures

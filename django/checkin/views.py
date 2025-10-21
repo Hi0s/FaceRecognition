@@ -252,7 +252,7 @@ def face_match_api(request: HttpRequest) -> JsonResponse:
     except Exception:
         return JsonResponse({'detail': 'Search failed.'}, status=500)
 
-    threshold = 0.8
+    threshold = 0.4
     matches = []
     best_employee = None
     best_distance = None

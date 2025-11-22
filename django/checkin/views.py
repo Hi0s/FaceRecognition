@@ -16,6 +16,7 @@ from .models import CheckInHistory, Employee
 from .services.face_encoder import encode_image_file
 from .services.faiss_index import face_index
 
+#to-do add a late for work to record
 
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.session.get('employee_id') and request.session.get('is_admin'):
@@ -43,7 +44,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 @admin_required
 def employee_list(request: HttpRequest) -> HttpResponse:
-    employees = Employee.objects.all().order_by('-is_admin', 'employee_name')
+    employees = Employee.objects.all().order_by('-is_admin', 'employee_id')
     form = EmployeeForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
@@ -203,7 +204,13 @@ def workdays_view(request: HttpRequest) -> HttpResponse:
         else:
             badge = 'bg-danger'
             status = 'Below 8 hours'
+        records_sorted = sorted(entry['records'], key=lambda r: r.created_at)
+        first_in = next((r for r in records_sorted if r.check_type == 'in'), None)
 
+        if first_in:
+            late = first_in.is_late
+        else:
+            late = False
         workday_rows.append(
             {
                 'employee': entry['employee'],
@@ -211,6 +218,7 @@ def workdays_view(request: HttpRequest) -> HttpResponse:
                 'hours': hours,
                 'hours_display': f"{hours:.2f}",
                 'status': status,
+                'late':late,
                 'badge_class': badge,
                 'records': sorted(entry['records'], key=lambda item: item.created_at),
             },

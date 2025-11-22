@@ -35,6 +35,8 @@ class CheckInHistory(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='checkins')
     check_type = models.CharField(max_length=3, choices=CHECK_TYPE_CHOICES)
     created_at = models.DateTimeField(default=timezone.now)
+    is_late = models.BooleanField(default=False)
+
 
     class Meta:
         db_table = 'tbl_checkin_history'

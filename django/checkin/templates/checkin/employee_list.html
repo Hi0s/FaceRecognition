@@ -1,121 +1,134 @@
 {% extends 'checkin/base.html' %}
 {% block title %}Manage Users • Face Check-In{% endblock %}
 {% block extra_head %}
-  {{ block.super }}
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-  <style>
-    .face-capture-app {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 16px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .face-capture-preview {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      border-radius: 14px;
-      overflow: hidden;
-      background: #000;
-    }
-    .face-capture-preview video,
-    .face-capture-preview canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-      transform-origin: center;
-    }
-    .face-capture-status {
-      min-height: 48px;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 12px 16px;
-      background: #ebf1ff;
-      color: #1d3a8a;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-    .face-capture-status strong {
-      display: block;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.7;
-    }
-    .face-capture-steps {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      gap: 10px;
-      justify-content: space-between;
-    }
-    .face-capture-step {
-      flex: 1;
-      text-align: center;
-      padding: 10px 8px;
-      border-radius: 10px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border: 1px solid rgba(40, 59, 115, 0.18);
-      background: rgba(235, 241, 255, 0.7);
-      color: #3a4d86;
-    }
-    .face-capture-step.active {
-      border-color: #2563eb;
-      background: rgba(37, 99, 235, 0.12);
-      color: #1d3a8a;
-      font-weight: 600;
-    }
-    .face-capture-step.done {
-      background: rgba(22, 163, 74, 0.16);
-      border-color: rgba(22, 163, 74, 0.5);
-      color: #166534;
-    }
-    .face-capture-captures {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 12px;
-    }
-    .face-capture-card {
-      background: #f6f7ff;
-      border-radius: 12px;
-      padding: 10px;
-      text-align: center;
-      box-shadow: inset 0 0 0 1px rgba(40, 59, 115, 0.05);
-    }
-    .face-capture-card img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      border-radius: 10px;
-      border: 1px solid rgba(40, 59, 115, 0.2);
-    }
-    .face-capture-card span {
-      display: block;
-      margin-top: 6px;
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #4d609c;
-    }
-    .capture-thumb {
-      width: 64px;
-      height: 64px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid rgba(40, 59, 115, 0.2);
-    }
-  </style>
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+<style>
+  .face-capture-app {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .face-capture-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .face-capture-preview video,
+  .face-capture-preview canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    transform-origin: center;
+  }
+
+  .face-capture-status {
+    min-height: 48px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 16px;
+    background: #ebf1ff;
+    color: #1d3a8a;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .face-capture-status strong {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.7;
+  }
+
+  .face-capture-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .face-capture-step {
+    flex: 1;
+    text-align: center;
+    padding: 10px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(40, 59, 115, 0.18);
+    background: rgba(235, 241, 255, 0.7);
+    color: #3a4d86;
+  }
+
+  .face-capture-step.active {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d3a8a;
+    font-weight: 600;
+  }
+
+  .face-capture-step.done {
+    background: rgba(22, 163, 74, 0.16);
+    border-color: rgba(22, 163, 74, 0.5);
+    color: #166534;
+  }
+
+  .face-capture-captures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+  }
+
+  .face-capture-card {
+    background: #f6f7ff;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(40, 59, 115, 0.05);
+  }
+
+  .face-capture-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(40, 59, 115, 0.2);
+  }
+
+  .face-capture-card span {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #4d609c;
+  }
+
+  .capture-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(40, 59, 115, 0.2);
+  }
+</style>
 {% endblock %}
 {% block content %}
 <div class="row g-4">
@@ -131,53 +144,55 @@
             <label class="form-label" for="id_employee_id">Employee ID</label>
             {{ form.employee_id }}
             {% if form.employee_id.errors %}
-              <small class="text-danger">{{ form.employee_id.errors.0 }}</small>
+            <small class="text-danger">{{ form.employee_id.errors.0 }}</small>
             {% endif %}
           </div>
           <div class="mb-3">
             <label class="form-label" for="id_employee_name">Full Name</label>
             {{ form.employee_name }}
             {% if form.employee_name.errors %}
-              <small class="text-danger">{{ form.employee_name.errors.0 }}</small>
+            <small class="text-danger">{{ form.employee_name.errors.0 }}</small>
             {% endif %}
           </div>
           <div class="mb-3">
             <label class="form-label" for="id_employee_birth">Birth Date</label>
             {{ form.employee_birth }}
             {% if form.employee_birth.errors %}
-              <small class="text-danger">{{ form.employee_birth.errors.0 }}</small>
+            <small class="text-danger">{{ form.employee_birth.errors.0 }}</small>
             {% endif %}
           </div>
           <div class="mb-3">
             <label class="form-label" for="id_employee_gender">Gender</label>
             {{ form.employee_gender }}
             {% if form.employee_gender.errors %}
-              <small class="text-danger">{{ form.employee_gender.errors.0 }}</small>
+            <small class="text-danger">{{ form.employee_gender.errors.0 }}</small>
             {% endif %}
           </div>
           <div class="mb-3 form-check">
             {{ form.is_admin }}
             <label class="form-check-label" for="id_is_admin">Administrator</label>
             {% if form.is_admin.errors %}
-              <small class="text-danger">{{ form.is_admin.errors.0 }}</small>
+            <small class="text-danger">{{ form.is_admin.errors.0 }}</small>
             {% endif %}
           </div>
-          <div class="mb-3">
+          <div class="mb-3" id="passwordContainer">
             <label class="form-label" for="id_password">Password</label>
             {{ form.password }}
             {% if form.password.errors %}
-              <small class="text-danger">{{ form.password.errors.0 }}</small>
+            <small class="text-danger">{{ form.password.errors.0 }}</small>
             {% endif %}
           </div>
           <div class="mb-3">
             <label class="form-label">Face Captures</label>
             <div class="d-flex flex-column gap-2">
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#faceCaptureModal" id="openFaceCapture">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                  data-bs-target="#faceCaptureModal" id="openFaceCapture">
                   <i class="ti ti-camera"></i> Capture Poses
                 </button>
                 <label class="btn btn-outline-secondary mb-0">
-                  <input type="file" id="faceCaptureUpload" class="visually-hidden" accept="image/*" capture="environment" multiple>
+                  <input type="file" id="faceCaptureUpload" class="visually-hidden" accept="image/*"
+                    capture="environment" multiple>
                   <i class="ti ti-upload"></i> Upload Images
                 </label>
                 <span id="faceCaptureStatus" class="text-muted small">No captures yet.</span>
@@ -185,9 +200,10 @@
               {{ form.face_captures }}
               <div id="faceCaptureThumbs" class="d-flex gap-2 flex-wrap"></div>
               {% if form.face_captures.errors %}
-                <small class="text-danger">{{ form.face_captures.errors.0 }}</small>
+              <small class="text-danger">{{ form.face_captures.errors.0 }}</small>
               {% else %}
-                <small class="text-muted">Capture the required center, left, and right poses or upload existing photos.</small>
+              <small class="text-muted">Capture the required center, left, and right poses or upload existing
+                photos.</small>
               {% endif %}
             </div>
           </div>
@@ -215,27 +231,29 @@
           </thead>
           <tbody>
             {% for employee in employees %}
-              <tr>
-                <td>{{ employee.employee_id }}</td>
-                <td>{{ employee.employee_name }}</td>
-                <td>{{ employee.employee_birth|date:'Y-m-d' }}</td>
-                <td class="text-capitalize">{{ employee.employee_gender }}</td>
-                <td>
-                  {% if employee.is_admin %}
-                    <span class="badge bg-success">Yes</span>
-                  {% else %}
-                    <span class="badge bg-secondary">No</span>
-                  {% endif %}
-                </td>
-                <td class="text-end">
-                  <a class="btn btn-sm btn-link" href="{% url 'checkin:employee_edit' employee.pk %}"><i class="ti ti-edit"></i> Edit</a>
-                  <a class="btn btn-sm btn-link text-danger" href="{% url 'checkin:employee_delete' employee.pk %}"><i class="ti ti-trash"></i> Delete</a>
-                </td>
-              </tr>
+            <tr>
+              <td>{{ employee.employee_id }}</td>
+              <td>{{ employee.employee_name }}</td>
+              <td>{{ employee.employee_birth|date:'Y-m-d' }}</td>
+              <td class="text-capitalize">{{ employee.employee_gender }}</td>
+              <td>
+                {% if employee.is_admin %}
+                <span class="badge bg-success">Yes</span>
+                {% else %}
+                <span class="badge bg-secondary">No</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-link" href="{% url 'checkin:employee_edit' employee.pk %}"><i
+                    class="ti ti-edit"></i> Edit</a>
+                <a class="btn btn-sm btn-link text-danger" href="{% url 'checkin:employee_delete' employee.pk %}"><i
+                    class="ti ti-trash"></i> Delete</a>
+              </td>
+            </tr>
             {% empty %}
-              <tr>
-                <td colspan="6" class="text-center text-muted">No employees yet.</td>
-              </tr>
+            <tr>
+              <td colspan="6" class="text-center text-muted">No employees yet.</td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -287,439 +305,461 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-  {{ block.super }}
-  <script>
-    (function() {
-      const STEPS = [
-        { key: 'center', label: 'Center' },
-        { key: 'left', label: 'Look Left' },
-        { key: 'right', label: 'Look Right' },
-      ];
-      const STABLE_FRAMES_REQUIRED = 18;
-      const MIN_FACE_WIDTH_RATIO = 0.15;
+{{ block.super }}
+<script>
+  (function () {
+    const STEPS = [
+      { key: 'center', label: 'Center' },
+      { key: 'left', label: 'Look Left' },
+      { key: 'right', label: 'Look Right' },
+    ];
+    const STABLE_FRAMES_REQUIRED = 18;
+    const MIN_FACE_WIDTH_RATIO = 0.15;
 
-      const hiddenInput = document.getElementById('id_face_captures');
-      const statusLabel = document.getElementById('faceCaptureStatus');
-      const thumbsContainer = document.getElementById('faceCaptureThumbs');
-      const modalEl = document.getElementById('faceCaptureModal');
+    const hiddenInput = document.getElementById('id_face_captures');
+    const statusLabel = document.getElementById('faceCaptureStatus');
+    const thumbsContainer = document.getElementById('faceCaptureThumbs');
+    const modalEl = document.getElementById('faceCaptureModal');
 
-      const refs = {
-        video: document.getElementById('faceCaptureVideo'),
-        overlay: document.getElementById('faceCaptureOverlay'),
-        statusBox: document.getElementById('faceCaptureStatusBox'),
-        steps: document.getElementById('faceCaptureSteps'),
-        cards: document.getElementById('faceCaptureCards'),
-        startButton: document.getElementById('faceCaptureStartButton'),
-        widthInput: document.getElementById('captureWidthInput'),
-        heightInput: document.getElementById('captureHeightInput'),
-      };
-      const uploadInput = document.getElementById('faceCaptureUpload');
+    const refs = {
+      video: document.getElementById('faceCaptureVideo'),
+      overlay: document.getElementById('faceCaptureOverlay'),
+      statusBox: document.getElementById('faceCaptureStatusBox'),
+      steps: document.getElementById('faceCaptureSteps'),
+      cards: document.getElementById('faceCaptureCards'),
+      startButton: document.getElementById('faceCaptureStartButton'),
+      widthInput: document.getElementById('captureWidthInput'),
+      heightInput: document.getElementById('captureHeightInput'),
+    };
+    const uploadInput = document.getElementById('faceCaptureUpload');
 
-      let overlayCtx = refs.overlay.getContext('2d');
-      let faceMesh = null;
-      let scanning = false;
-      let currentStepIndex = 0;
-      let stableCounter = 0;
-      const capturedImages = new Map();
-      let videoStream = null;
+    let overlayCtx = refs.overlay.getContext('2d');
+    let faceMesh = null;
+    let scanning = false;
+    let currentStepIndex = 0;
+    let stableCounter = 0;
+    const capturedImages = new Map();
+    let videoStream = null;
 
-      function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-      }
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
 
-      function updateStatus(message, label = 'Status') {
-        refs.statusBox.innerHTML = '<strong>' + label + '</strong>' + message;
-      }
+    function updateStatus(message, label = 'Status') {
+      refs.statusBox.innerHTML = '<strong>' + label + '</strong>' + message;
+    }
 
-      function renderSteps() {
-        refs.steps.innerHTML = '';
-        STEPS.forEach((step, index) => {
-          const li = document.createElement('li');
-          li.className = 'face-capture-step';
-          if (index < currentStepIndex) {
-            li.classList.add('done');
-          } else if (index === currentStepIndex && scanning) {
-            li.classList.add('active');
-          }
-          li.textContent = step.label;
-          refs.steps.appendChild(li);
-        });
-      }
-
-      function renderCards() {
-        refs.cards.innerHTML = '';
-        STEPS.forEach(step => {
-          if (!capturedImages.has(step.key)) {
-            return;
-          }
-          const card = document.createElement('div');
-          card.className = 'face-capture-card';
-          const img = document.createElement('img');
-          img.src = capturedImages.get(step.key);
-          img.alt = step.label;
-          const span = document.createElement('span');
-          span.textContent = step.label;
-          card.appendChild(img);
-          card.appendChild(span);
-          refs.cards.appendChild(card);
-        });
-      }
-
-      function renderThumbs() {
-        thumbsContainer.innerHTML = '';
-        STEPS.forEach(step => {
-          if (!capturedImages.has(step.key)) {
-            return;
-          }
-          const img = document.createElement('img');
-          img.className = 'capture-thumb';
-          img.src = capturedImages.get(step.key);
-          img.alt = step.label;
-          thumbsContainer.appendChild(img);
-        });
-        if (capturedImages.size === STEPS.length) {
-          statusLabel.textContent = 'All poses captured.';
-          statusLabel.classList.remove('text-muted');
-          statusLabel.classList.add('text-success');
-        } else if (capturedImages.size > 0) {
-          statusLabel.textContent = 'Captured ' + capturedImages.size + ' of 3 poses.';
-          statusLabel.classList.remove('text-success');
-          statusLabel.classList.remove('text-muted');
-        } else {
-          statusLabel.textContent = 'No captures yet.';
-          statusLabel.classList.remove('text-success');
-          statusLabel.classList.add('text-muted');
+    function renderSteps() {
+      refs.steps.innerHTML = '';
+      STEPS.forEach((step, index) => {
+        const li = document.createElement('li');
+        li.className = 'face-capture-step';
+        if (index < currentStepIndex) {
+          li.classList.add('done');
+        } else if (index === currentStepIndex && scanning) {
+          li.classList.add('active');
         }
-      }
+        li.textContent = step.label;
+        refs.steps.appendChild(li);
+      });
+    }
 
-      function updateHiddenInput() {
-        const ordered = [];
-        STEPS.forEach(step => {
-          if (capturedImages.has(step.key)) {
-            ordered.push(capturedImages.get(step.key));
-          }
-        });
-        hiddenInput.value = ordered.length ? JSON.stringify(ordered) : '';
-        renderThumbs();
-      }
-
-      function handleFileUpload(event) {
-        const files = Array.from(event.target.files || []);
-        if (!files.length) {
+    function renderCards() {
+      refs.cards.innerHTML = '';
+      STEPS.forEach(step => {
+        if (!capturedImages.has(step.key)) {
           return;
         }
-        const readers = files.map(
-          file =>
-            new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            }),
-        );
-        Promise.all(readers)
-          .then(dataUrls => {
-            capturedImages.clear();
-            dataUrls.slice(0, STEPS.length).forEach((url, index) => {
-              capturedImages.set(STEPS[index].key, url);
-            });
-            renderCards();
-            updateHiddenInput();
-            updateStatus('Loaded images from upload.', 'Status');
-          })
-          .catch(() => {
-            updateStatus('Failed to read selected files.', 'Error');
-          })
-          .finally(() => {
-            uploadInput.value = '';
+        const card = document.createElement('div');
+        card.className = 'face-capture-card';
+        const img = document.createElement('img');
+        img.src = capturedImages.get(step.key);
+        img.alt = step.label;
+        const span = document.createElement('span');
+        span.textContent = step.label;
+        card.appendChild(img);
+        card.appendChild(span);
+        refs.cards.appendChild(card);
+      });
+    }
+
+    function renderThumbs() {
+      thumbsContainer.innerHTML = '';
+      STEPS.forEach(step => {
+        if (!capturedImages.has(step.key)) {
+          return;
+        }
+        const img = document.createElement('img');
+        img.className = 'capture-thumb';
+        img.src = capturedImages.get(step.key);
+        img.alt = step.label;
+        thumbsContainer.appendChild(img);
+      });
+      if (capturedImages.size === STEPS.length) {
+        statusLabel.textContent = 'All poses captured.';
+        statusLabel.classList.remove('text-muted');
+        statusLabel.classList.add('text-success');
+      } else if (capturedImages.size > 0) {
+        statusLabel.textContent = 'Captured ' + capturedImages.size + ' of 3 poses.';
+        statusLabel.classList.remove('text-success');
+        statusLabel.classList.remove('text-muted');
+      } else {
+        statusLabel.textContent = 'No captures yet.';
+        statusLabel.classList.remove('text-success');
+        statusLabel.classList.add('text-muted');
+      }
+    }
+
+    function updateHiddenInput() {
+      const ordered = [];
+      STEPS.forEach(step => {
+        if (capturedImages.has(step.key)) {
+          ordered.push(capturedImages.get(step.key));
+        }
+      });
+      hiddenInput.value = ordered.length ? JSON.stringify(ordered) : '';
+      renderThumbs();
+    }
+
+    function handleFileUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) {
+        return;
+      }
+      const readers = files.map(
+        file =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          }),
+      );
+      Promise.all(readers)
+        .then(dataUrls => {
+          capturedImages.clear();
+          dataUrls.slice(0, STEPS.length).forEach((url, index) => {
+            capturedImages.set(STEPS[index].key, url);
           });
+          renderCards();
+          updateHiddenInput();
+          updateStatus('Loaded images from upload.', 'Status');
+        })
+        .catch(() => {
+          updateStatus('Failed to read selected files.', 'Error');
+        })
+        .finally(() => {
+          uploadInput.value = '';
+        });
+    }
+
+    function analyseDistance(landmarks) {
+      const leftEye = landmarks[33];
+      const rightEye = landmarks[263];
+      return Math.abs(rightEye.x - leftEye.x);
+    }
+
+    function isPoseSatisfied(landmarks, pose) {
+      const nose = landmarks[1];
+      const leftCheek = landmarks[116];
+      const rightCheek = landmarks[345];
+      const leftDistance = Math.abs(nose.x - leftCheek.x);
+      const rightDistance = Math.abs(nose.x - rightCheek.x);
+      const ratio = leftDistance / Math.max(rightDistance, 1e-5);
+
+      if (pose === 'center') {
+        return ratio > 0.85 && ratio < 1.15;
       }
-
-      function analyseDistance(landmarks) {
-        const leftEye = landmarks[33];
-        const rightEye = landmarks[263];
-        return Math.abs(rightEye.x - leftEye.x);
+      if (pose === 'left') {
+        return ratio > 1.25;
       }
-
-      function isPoseSatisfied(landmarks, pose) {
-        const nose = landmarks[1];
-        const leftCheek = landmarks[116];
-        const rightCheek = landmarks[345];
-        const leftDistance = Math.abs(nose.x - leftCheek.x);
-        const rightDistance = Math.abs(nose.x - rightCheek.x);
-        const ratio = leftDistance / Math.max(rightDistance, 1e-5);
-
-        if (pose === 'center') {
-          return ratio > 0.85 && ratio < 1.15;
-        }
-        if (pose === 'left') {
-          return ratio > 1.25;
-        }
-        if (pose === 'right') {
-          return ratio < 0.75;
-        }
-        return false;
+      if (pose === 'right') {
+        return ratio < 0.75;
       }
+      return false;
+    }
 
-      function computeFaceBox(landmarks) {
-        let minX = 1;
-        let minY = 1;
-        let maxX = 0;
-        let maxY = 0;
-        for (const point of landmarks) {
-          minX = Math.min(minX, point.x);
-          maxX = Math.max(maxX, point.x);
-          minY = Math.min(minY, point.y);
-          maxY = Math.max(maxY, point.y);
-        }
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        const size = Math.max(maxX - minX, maxY - minY) + 0.08;
-        const boxSize = Math.min(1, size);
-        const x = clamp(centerX - boxSize / 2, 0, 1 - boxSize);
-        const y = clamp(centerY - boxSize / 2, 0, 1 - boxSize);
-        return { x, y, width: boxSize, height: boxSize };
+    function computeFaceBox(landmarks) {
+      let minX = 1;
+      let minY = 1;
+      let maxX = 0;
+      let maxY = 0;
+      for (const point of landmarks) {
+        minX = Math.min(minX, point.x);
+        maxX = Math.max(maxX, point.x);
+        minY = Math.min(minY, point.y);
+        maxY = Math.max(maxY, point.y);
       }
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const size = Math.max(maxX - minX, maxY - minY) + 0.08;
+      const boxSize = Math.min(1, size);
+      const x = clamp(centerX - boxSize / 2, 0, 1 - boxSize);
+      const y = clamp(centerY - boxSize / 2, 0, 1 - boxSize);
+      return { x, y, width: boxSize, height: boxSize };
+    }
 
-      function computeSquareCrop(box, frameWidth, frameHeight) {
-        const boxWidthPx = box.width * frameWidth;
-        const boxHeightPx = box.height * frameHeight;
-        const centerX = box.x * frameWidth + boxWidthPx / 2;
-        const centerY = box.y * frameHeight + boxHeightPx / 2;
-        const squareSizePx = Math.min(Math.max(boxWidthPx, boxHeightPx), Math.min(frameWidth, frameHeight));
-        const halfSize = squareSizePx / 2;
-        const maxX = Math.max(frameWidth - squareSizePx, 0);
-        const maxY = Math.max(frameHeight - squareSizePx, 0);
-        const sourceX = clamp(centerX - halfSize, 0, maxX);
-        const sourceY = clamp(centerY - halfSize, 0, maxY);
-        return { x: sourceX, y: sourceY, size: squareSizePx };
+    function computeSquareCrop(box, frameWidth, frameHeight) {
+      const boxWidthPx = box.width * frameWidth;
+      const boxHeightPx = box.height * frameHeight;
+      const centerX = box.x * frameWidth + boxWidthPx / 2;
+      const centerY = box.y * frameHeight + boxHeightPx / 2;
+      const squareSizePx = Math.min(Math.max(boxWidthPx, boxHeightPx), Math.min(frameWidth, frameHeight));
+      const halfSize = squareSizePx / 2;
+      const maxX = Math.max(frameWidth - squareSizePx, 0);
+      const maxY = Math.max(frameHeight - squareSizePx, 0);
+      const sourceX = clamp(centerX - halfSize, 0, maxX);
+      const sourceY = clamp(centerY - halfSize, 0, maxY);
+      return { x: sourceX, y: sourceY, size: squareSizePx };
+    }
+
+    function drawOverlay(landmarks, faceWidth) {
+      overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
+      if (!landmarks) {
+        return;
       }
+      const box = computeFaceBox(landmarks);
+      const scaleX = refs.overlay.width;
+      const scaleY = refs.overlay.height;
+      const isNear = typeof faceWidth === 'number' && faceWidth >= MIN_FACE_WIDTH_RATIO;
+      overlayCtx.strokeStyle = isNear ? '#22c55e' : '#ef4444';
+      overlayCtx.lineWidth = 3;
+      const crop = computeSquareCrop(box, scaleX, scaleY);
+      overlayCtx.strokeRect(
+        crop.x,
+        crop.y,
+        crop.size,
+        crop.size
+      );
+    }
 
-      function drawOverlay(landmarks, faceWidth) {
-        overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
-        if (!landmarks) {
-          return;
-        }
-        const box = computeFaceBox(landmarks);
-        const scaleX = refs.overlay.width;
-        const scaleY = refs.overlay.height;
-        const isNear = typeof faceWidth === 'number' && faceWidth >= MIN_FACE_WIDTH_RATIO;
-        overlayCtx.strokeStyle = isNear ? '#22c55e' : '#ef4444';
-        overlayCtx.lineWidth = 3;
-        const crop = computeSquareCrop(box, scaleX, scaleY);
-        overlayCtx.strokeRect(
-          crop.x,
-          crop.y,
-          crop.size,
-          crop.size
-        );
-      }
+    function capturePose(landmarks, pose) {
+      const targetWidth = Number(refs.widthInput.value) || 224;
+      const targetHeight = Number(refs.heightInput.value) || 224;
 
-      function capturePose(landmarks, pose) {
-        const targetWidth = Number(refs.widthInput.value) || 224;
-        const targetHeight = Number(refs.heightInput.value) || 224;
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = targetWidth;
+      captureCanvas.height = targetHeight;
+      const captureCtx = captureCanvas.getContext('2d');
 
-        const captureCanvas = document.createElement('canvas');
-        captureCanvas.width = targetWidth;
-        captureCanvas.height = targetHeight;
-        const captureCtx = captureCanvas.getContext('2d');
+      const box = computeFaceBox(landmarks);
+      const crop = computeSquareCrop(box, refs.video.videoWidth, refs.video.videoHeight);
 
-        const box = computeFaceBox(landmarks);
-        const crop = computeSquareCrop(box, refs.video.videoWidth, refs.video.videoHeight);
+      captureCtx.save();
+      captureCtx.translate(targetWidth, 0);
+      captureCtx.scale(-1, 1);
+      captureCtx.drawImage(
+        refs.video,
+        crop.x,
+        crop.y,
+        crop.size,
+        crop.size,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+      captureCtx.restore();
 
-        captureCtx.save();
-        captureCtx.translate(targetWidth, 0);
-        captureCtx.scale(-1, 1);
-        captureCtx.drawImage(
-          refs.video,
-          crop.x,
-          crop.y,
-          crop.size,
-          crop.size,
-          0,
-          0,
-          targetWidth,
-          targetHeight
-        );
-        captureCtx.restore();
+      const dataUrl = captureCanvas.toDataURL('image/jpeg', 1);
+      capturedImages.set(pose, dataUrl);
+      renderCards();
+      updateHiddenInput();
+    }
 
-        const dataUrl = captureCanvas.toDataURL('image/jpeg', 1);
-        capturedImages.set(pose, dataUrl);
-        renderCards();
-        updateHiddenInput();
-      }
-
-      function advanceStep() {
-        currentStepIndex += 1;
-        stableCounter = 0;
-        if (currentStepIndex >= STEPS.length) {
-          scanning = false;
-          refs.startButton.disabled = false;
-          renderSteps();
-          updateStatus('All poses captured. You can close this dialog.', 'Done');
-        } else {
-          renderSteps();
-          const step = STEPS[currentStepIndex];
-          updateStatus('Now ' + step.label.toLowerCase() + '. Keep your face close to the camera.', 'Step ' + (currentStepIndex + 1));
-        }
-      }
-
-      function resetScanningState() {
+    function advanceStep() {
+      currentStepIndex += 1;
+      stableCounter = 0;
+      if (currentStepIndex >= STEPS.length) {
         scanning = false;
         refs.startButton.disabled = false;
-        currentStepIndex = 0;
+        renderSteps();
+        updateStatus('All poses captured. You can close this dialog.', 'Done');
+      } else {
+        renderSteps();
+        const step = STEPS[currentStepIndex];
+        updateStatus('Now ' + step.label.toLowerCase() + '. Keep your face close to the camera.', 'Step ' + (currentStepIndex + 1));
+      }
+    }
+
+    function resetScanningState() {
+      scanning = false;
+      refs.startButton.disabled = false;
+      currentStepIndex = 0;
+      stableCounter = 0;
+      renderSteps();
+      updateStatus('Camera ready. Press start to capture poses.');
+    }
+
+    function onResults(results) {
+      const landmarks = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
+      const faceWidth = landmarks ? analyseDistance(landmarks) : null;
+      drawOverlay(landmarks, faceWidth);
+
+      if (!landmarks || !scanning) {
+        if (scanning) {
+          updateStatus('Face not found. Move into the frame.', 'Warning');
+        }
+        return;
+      }
+
+      if (faceWidth === null || faceWidth < MIN_FACE_WIDTH_RATIO) {
         stableCounter = 0;
-        renderSteps();
-        updateStatus('Camera ready. Press start to capture poses.');
+        updateStatus('Move closer so your face fills the capture box.', 'Warning');
+        return;
       }
 
-      function onResults(results) {
-        const landmarks = results.multiFaceLandmarks && results.multiFaceLandmarks[0];
-        const faceWidth = landmarks ? analyseDistance(landmarks) : null;
-        drawOverlay(landmarks, faceWidth);
-
-        if (!landmarks || !scanning) {
-          if (scanning) {
-            updateStatus('Face not found. Move into the frame.', 'Warning');
-          }
-          return;
-        }
-
-        if (faceWidth === null || faceWidth < MIN_FACE_WIDTH_RATIO) {
-          stableCounter = 0;
-          updateStatus('Move closer so your face fills the capture box.', 'Warning');
-          return;
-        }
-
-        const currentStep = STEPS[currentStepIndex];
-        if (!isPoseSatisfied(landmarks, currentStep.key)) {
-          stableCounter = 0;
-          updateStatus('Hold steady and ' + currentStep.label.toLowerCase() + '.', 'Step ' + (currentStepIndex + 1));
-          return;
-        }
-
-        stableCounter += 1;
-        const progress = Math.round((stableCounter / STABLE_FRAMES_REQUIRED) * 100);
-        updateStatus('Great! Holding still... ' + progress + '%', 'Step ' + (currentStepIndex + 1));
-
-        if (stableCounter >= STABLE_FRAMES_REQUIRED) {
-          capturePose(landmarks, currentStep.key);
-          advanceStep();
-        }
-      }
-
-      async function processFrame() {
-        if (refs.video.readyState >= 2 && faceMesh) {
-          await faceMesh.send({ image: refs.video });
-        }
-        requestAnimationFrame(processFrame);
-      }
-
-      async function initFaceMesh() {
-        if (faceMesh) {
-          return;
-        }
-        faceMesh = new FaceMesh({
-          locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + file,
-        });
-        faceMesh.setOptions({
-          maxNumFaces: 1,
-          refineLandmarks: true,
-          minDetectionConfidence: 0.8,
-          minTrackingConfidence: 0.8,
-        });
-        faceMesh.onResults(onResults);
-      }
-
-      async function initCamera() {
-        if (videoStream) {
-          return;
-        }
-        try {
-          videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480, facingMode: 'user' },
-            audio: false,
-          });
-          refs.video.srcObject = videoStream;
-          await new Promise(resolve => {
-            refs.video.onloadedmetadata = () => {
-              refs.video.play();
-              refs.overlay.width = refs.video.videoWidth;
-              refs.overlay.height = refs.video.videoHeight;
-              overlayCtx = refs.overlay.getContext('2d');
-              resolve();
-            };
-          });
-          updateStatus('Camera ready. Press start to capture poses.');
-        } catch (error) {
-          console.error('Camera error', error);
-          updateStatus('Unable to access camera. Please allow permission and reload.', 'Error');
-        }
-      }
-
-      function stopCamera() {
-        if (videoStream) {
-          videoStream.getTracks().forEach(track => track.stop());
-          videoStream = null;
-        }
-        if (refs.video) {
-          refs.video.srcObject = null;
-        }
-        overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
-      }
-
-      async function openCaptureModal() {
-        await initFaceMesh();
-        await initCamera();
-        renderSteps();
-        renderCards();
-        processFrame();
-      }
-
-      refs.startButton.addEventListener('click', () => {
-        capturedImages.clear();
-        renderCards();
-        updateHiddenInput();
-        currentStepIndex = 0;
+      const currentStep = STEPS[currentStepIndex];
+      if (!isPoseSatisfied(landmarks, currentStep.key)) {
         stableCounter = 0;
-        scanning = true;
-        refs.startButton.disabled = true;
-        renderSteps();
-        updateStatus('Look straight at the camera until the capture flashes.', 'Step 1');
+        updateStatus('Hold steady and ' + currentStep.label.toLowerCase() + '.', 'Step ' + (currentStepIndex + 1));
+        return;
+      }
+
+      stableCounter += 1;
+      const progress = Math.round((stableCounter / STABLE_FRAMES_REQUIRED) * 100);
+      updateStatus('Great! Holding still... ' + progress + '%', 'Step ' + (currentStepIndex + 1));
+
+      if (stableCounter >= STABLE_FRAMES_REQUIRED) {
+        capturePose(landmarks, currentStep.key);
+        advanceStep();
+      }
+    }
+
+    async function processFrame() {
+      if (refs.video.readyState >= 2 && faceMesh) {
+        await faceMesh.send({ image: refs.video });
+      }
+      requestAnimationFrame(processFrame);
+    }
+
+    async function initFaceMesh() {
+      if (faceMesh) {
+        return;
+      }
+      faceMesh = new FaceMesh({
+        locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/' + file,
       });
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.8,
+        minTrackingConfidence: 0.8,
+      });
+      faceMesh.onResults(onResults);
+    }
 
-      if (modalEl) {
-        modalEl.addEventListener('shown.bs.modal', () => {
-          openCaptureModal();
-        });
-        modalEl.addEventListener('hidden.bs.modal', () => {
-          stopCamera();
-          scanning = false;
-          resetScanningState();
-        });
+    async function initCamera() {
+      if (videoStream) {
+        return;
       }
-
       try {
-        const initial = hiddenInput.value;
-        if (initial) {
-          const parsed = JSON.parse(initial);
-          if (Array.isArray(parsed)) {
-            STEPS.forEach((step, index) => {
-              if (parsed[index]) {
-                capturedImages.set(step.key, parsed[index]);
-              }
-            });
-          }
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' },
+          audio: false,
+        });
+        refs.video.srcObject = videoStream;
+        await new Promise(resolve => {
+          refs.video.onloadedmetadata = () => {
+            refs.video.play();
+            refs.overlay.width = refs.video.videoWidth;
+            refs.overlay.height = refs.video.videoHeight;
+            overlayCtx = refs.overlay.getContext('2d');
+            resolve();
+          };
+        });
+        updateStatus('Camera ready. Press start to capture poses.');
+      } catch (error) {
+        console.error('Camera error', error);
+        updateStatus('Unable to access camera. Please allow permission and reload.', 'Error');
+      }
+    }
+
+    function stopCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      if (refs.video) {
+        refs.video.srcObject = null;
+      }
+      overlayCtx.clearRect(0, 0, refs.overlay.width, refs.overlay.height);
+    }
+
+    async function openCaptureModal() {
+      await initFaceMesh();
+      await initCamera();
+      renderSteps();
+      renderCards();
+      processFrame();
+    }
+
+    refs.startButton.addEventListener('click', () => {
+      capturedImages.clear();
+      renderCards();
+      updateHiddenInput();
+      currentStepIndex = 0;
+      stableCounter = 0;
+      scanning = true;
+      refs.startButton.disabled = true;
+      renderSteps();
+      updateStatus('Look straight at the camera until the capture flashes.', 'Step 1');
+    });
+
+    if (modalEl) {
+      modalEl.addEventListener('shown.bs.modal', () => {
+        openCaptureModal();
+      });
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        stopCamera();
+        scanning = false;
+        resetScanningState();
+      });
+    }
+
+    try {
+      const initial = hiddenInput.value;
+      if (initial) {
+        const parsed = JSON.parse(initial);
+        if (Array.isArray(parsed)) {
+          STEPS.forEach((step, index) => {
+            if (parsed[index]) {
+              capturedImages.set(step.key, parsed[index]);
+            }
+          });
         }
-      } catch (err) {
-        console.warn('Unable to restore face captures', err);
       }
+    } catch (err) {
+      console.warn('Unable to restore face captures', err);
+    }
 
-      renderThumbs();
+    renderThumbs();
 
-      if (uploadInput) {
-        uploadInput.addEventListener('change', handleFileUpload);
+    if (uploadInput) {
+      uploadInput.addEventListener('change', handleFileUpload);
+    }
+  })();
+
+  // --- Admin/password toggle logic ---
+  document.addEventListener('DOMContentLoaded', function () {
+    const adminCheckbox = document.getElementById('id_is_admin');
+    const passwordContainer = document.getElementById('passwordContainer');
+
+    if (!adminCheckbox || !passwordContainer) return;
+
+    function updatePasswordVisibility() {
+      if (adminCheckbox.checked) {
+        passwordContainer.style.display = 'block';
+      } else {
+        passwordContainer.style.display = 'none';
       }
-    })();
-  </script>
+    }
+
+    // Run on initial load
+    updatePasswordVisibility();
+
+    // Run on toggle
+    adminCheckbox.addEventListener('change', updatePasswordVisibility);
+  });
+</script>
 {% endblock %}

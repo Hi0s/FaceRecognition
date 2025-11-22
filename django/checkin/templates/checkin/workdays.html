@@ -41,34 +41,39 @@
       </thead>
       <tbody>
         {% for row in workday_rows %}
-          <tr>
-            <td>{{ row.date }}</td>
-            <td>
-              <div class="fw-bold">{{ row.employee.employee_name }}</div>
-              <small class="text-muted">{{ row.employee.employee_id }}</small>
-            </td>
-            <td>{{ row.hours_display }}</td>
-            <td>
-              <span class="badge text-white {{ row.badge_class }}">{{ row.status }}</span>
-            </td>
-            <td>
-              {% if row.records %}
-                <div class="d-flex flex-wrap gap-1">
-                  {% for record in row.records %}
-                    <span class="badge bg-secondary-subtle text-dark">
-                      {{ record.created_at|localtime|date:'H:i' }} • {{ record.get_check_type_display }}
-                    </span>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <span class="text-muted">No entries</span>
-              {% endif %}
-            </td>
-          </tr>
+        <tr>
+          <td>{{ row.date }}</td>
+          <td>
+            <div class="fw-bold">{{ row.employee.employee_name }}</div>
+            <small class="text-muted">{{ row.employee.employee_id }}</small>
+          </td>
+          <td>{{ row.hours_display }}</td>
+          <td>
+            <span class="badge text-white {{ row.badge_class }}">{{ row.status }} </span>
+            {% if row.late%}
+            <span class="badge bg-warning text-white ">
+              Late
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.records %}
+            <div class="d-flex flex-wrap gap-1">
+              {% for record in row.records %}
+              <span class="badge bg-secondary-subtle text-dark">
+                {{ record.created_at|localtime|date:'H:i' }} • {{ record.get_check_type_display }}
+              </span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <span class="text-muted">No entries</span>
+            {% endif %}
+          </td>
+        </tr>
         {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">No workday data for the selected range.</td>
-          </tr>
+        <tr>
+          <td colspan="5" class="text-center text-muted">No workday data for the selected range.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

@@ -10,7 +10,7 @@ class ApiService {
 
   ApiService() {
     // if (Platform.isIOS) {
-    url = "http://192.168.100.5:8000";
+    url = "http://172.20.10.13:8000";
     // }
     uploadUri = Uri.parse('$url/api/face-match/');
     // getResultUri = Uri.parse('$url/api/getResult');

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import CheckInHistory, Employee
 from .services.face_enrollment import register_employee_faces
-
+from datetime import time
 
 class LoginForm(forms.Form):
     employee_id = forms.IntegerField(label='Employee ID')
@@ -62,8 +62,6 @@ class EmployeeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pending_face_captures: list[str] = []
-        if not self.instance.pk:
-            self.fields['password'].required = True
         for name, field in self.fields.items():
             if isinstance(field.widget, forms.HiddenInput):
                 continue
@@ -75,8 +73,12 @@ class EmployeeForm(forms.ModelForm):
     def save(self, commit=True):
         employee = super().save(commit=False)
         password = self.cleaned_data.get('password')
-        if password:
-            employee.password = make_password(password)
+        is_admin=self.cleaned_data.get('is_admin')
+        if is_admin:
+            if password:
+                employee.password = make_password(password)
+        else:
+                employee.password = "-1"
         self._pending_face_captures = []
         captures = self.cleaned_data.get('face_captures') or []
 
@@ -113,7 +115,21 @@ class EmployeeForm(forms.ModelForm):
             raise forms.ValidationError('All three face poses are required.')
 
         return sanitized
+    def clean(self):
+        cleaned = super().clean()
+        is_admin = cleaned.get('is_admin')
+        password = cleaned.get('password')
 
+        # Admin accounts MUST have a password on create
+        if is_admin:
+            if not password and not self.instance.pk:
+                self.add_error('password', 'Password is required for administrators.')
+            # On edit: allow empty password → keep existing one
+        else:
+            # Non-admin: ignore any password that might come in
+            cleaned['password'] = None
+
+        return cleaned
 
 class CheckInForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -146,10 +162,12 @@ class CheckInForm(forms.ModelForm):
         existing_checkout = checkout_qs.order_by('-created_at').first()
 
         if not existing_checkin:
+            is_late=now.time()>=time(8,1)
             record = CheckInHistory(
                 employee=employee,
                 check_type='in',
                 created_at=now,
+                is_late=is_late,
             )
             if commit:
                 record.save()
